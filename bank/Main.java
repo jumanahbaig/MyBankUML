@@ -12,7 +12,7 @@ public class Main {
         Check check = new Check(customer);
         Saving saving = new Saving(customer);
 
-        // Transations for each account
+        // Transactions for each account
         Transaction t1 = new Transaction();
         Transaction t2 = new Transaction();
         Transaction t3 = new Transaction();
