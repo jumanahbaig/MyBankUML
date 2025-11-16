@@ -82,6 +82,7 @@ public class AccountRepository {
         }
     }
 
+    // Currently unused; kept in case we want to flush the cache explicitly.
     public void save() {
         System.out.println("Saving in-memory accounts to the database.");
         for (Account account : new ArrayList<>(accountList)) {
@@ -89,6 +90,7 @@ public class AccountRepository {
         }
     }
 
+    // Currently unused; intended for future cache warmups.
     public void load() {
         System.out.println("Loading accounts from the database.");
         // Refresh the in-memory list from scratch so it reflects the current database snapshot.
@@ -131,6 +133,7 @@ public class AccountRepository {
         this.accountList = accountList;
     }
 
+    // Currently unused; add filtering logic + callers before shipping.
     public void search(String criteria) {
         // TODO: implement account search (by customer, account number, or type) with SQL filtering.
     }

@@ -63,6 +63,7 @@ public class UserRepository {
         }
     }
 
+    // Currently unused; wire into UI or services before relying on it.
     public void search() {
         System.out.println("Searching users.");
         String sql = "SELECT username, first_name, last_name, role FROM users";
@@ -81,6 +82,7 @@ public class UserRepository {
         }
     }
 
+    // Currently unused; available if we ever cache user entities again.
     public void save() {
         System.out.println("Saving in-memory users to the database.");
         for (User user : new ArrayList<>(userList)) {
@@ -88,6 +90,7 @@ public class UserRepository {
         }
     }
 
+    // Currently unused; reserved for future cache warmups.
     public void load() {
         System.out.println("Loading users from the database into memory.");
         userList.clear();
