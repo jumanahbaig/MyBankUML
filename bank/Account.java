@@ -20,6 +20,7 @@ public abstract class Account {
     }
 
     public abstract void pay();
+
+    // TODO: include transaction metadata (id, timestamp, amount) when generating receipts.
     public abstract void receipt();
 }
-

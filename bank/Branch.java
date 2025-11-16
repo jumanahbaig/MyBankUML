@@ -15,6 +15,15 @@ public class Branch {
     }
 
     public void printBranchInfo() {
+        // TODO: include branch-specific stats (active tellers/customers) and use centralized logging.
         System.out.println("Branch " + address + " From Bank " + bank.getName());
+    }
+
+    public void userLogin() {
+        // TODO: manage authentication/session tracking for branch-specific logins.
+    }
+
+    public void userLogout() {
+        // TODO: invalidate sessions and audit user activity upon logout.
     }
 }

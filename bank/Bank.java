@@ -20,6 +20,7 @@ public class Bank {
     }
 
     public void printBankInfo() {
+        // TODO: replace println with structured logging and include metrics (e.g., # of customers/accounts).
         System.out.println("Bank: " + name);
         for (Branch branch : branches) {
             System.out.println("Branch: " + branch.getAddress());

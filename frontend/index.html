@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bank Portal</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>MyBankUML Prototype</h1>
+        <p>This is a placeholder UI that will eventually interact with the Java backend.</p>
+        <!-- TODO: add navigation between login, dashboard, and account views -->
+    </header>
+    <main>
+        <section class="card">
+            <h2>Login</h2>
+            <form id="login-form">
+                <label>
+                    Username
+                    <input type="text" name="username" required>
+                </label>
+                <label>
+                    Password
+                    <input type="password" name="password" required>
+                </label>
+                <button type="submit">Sign In</button>
+            </form>
+        </section>
+        <section class="card">
+            <h2>Forgot Password</h2>
+            <p>If you've forgotten your password, click below and we'll guide you through the recovery steps.</p>
+            <button id="forgot-password">Forgot Password?</button>
+            <!-- TODO: integrate identity verification options (email/SMS/security questions) -->
+        </section>
+        <section class="card">
+            <h2>API Response</h2>
+            <pre id="api-output">Waiting for backend...</pre>
+            <!-- TODO: show rich notifications/alerts instead of a simple pre block -->
+        </section>
+    </main>
+    <script src="app.js"></script>
+</body>
+</html>
+        <section class="card">
+            <h2>Dashboard Stubs</h2>
+            <ul>
+                <li><!-- TODO: Customer dashboard layout with account list and detail navigation --></li>
+                <li><!-- TODO: Teller dashboard with onboarding, search, and account request approvals --></li>
+                <li><!-- TODO: Admin dashboard with user management, password resets, and approvals --></li>
+            </ul>
+        </section>
