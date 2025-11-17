@@ -48,6 +48,9 @@ buildNumber.properties
 
 # End of https://www.toptal.com/developers/gitignore/api/java,maven
 
+# VS Code settings (keep local)
+.vscode/
+
 # Frontend (Vite/React/Node)
 frontend/node_modules/
 frontend/dist/
