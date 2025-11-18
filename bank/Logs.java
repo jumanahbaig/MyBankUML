@@ -36,10 +36,11 @@ public class Logs {
     }
 
     public void append(String actor, String action, String target, String details) {
-    	String logEntry = String.format("%s: actor %s performed action %s on target %s. Details: %s.\n", getTimeStamp(), actor, action, target, details);
+    	String logEntry = String.format("%s: actor %s performed action %s on target %s. Details: %s.", getTimeStamp(), actor, action, target, details);
     	
     	try (BufferedWriter writer = new BufferedWriter(new FileWriter(this.textFile, true))) {
     		writer.write(logEntry);
+    		writer.newLine();
     	} 
     	catch (IOException e) {
     		System.out.println(String.format("An error occured while trying to append an entry to LOG text file with name %s.", this.textFile));
