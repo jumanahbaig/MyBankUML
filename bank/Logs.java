@@ -1,5 +1,15 @@
 package bank;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class Logs {
     private final String textFile;
     
@@ -26,9 +36,9 @@ public class Logs {
     }
 
     public void append(String actor, String action, String target, String details) {
-    	String logEntry = String.format("%s: actor %s, performed action %s on target %s. Details: %s.\n", getTimeStamp(), actor, action, target, details);
+    	String logEntry = String.format("%s: actor %s performed action %s on target %s. Details: %s.\n", getTimeStamp(), actor, action, target, details);
     	
-    	try (FileWriter writer = new FileWriter(this.textFile, true)) {
+    	try (BufferedWriter writer = new BufferedWriter(new FileWriter(this.textFile, true))) {
     		writer.write(logEntry);
     	} 
     	catch (IOException e) {
