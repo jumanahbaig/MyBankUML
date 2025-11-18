@@ -26,7 +26,21 @@ public class Logs {
     }
 
     public void append(String actor, String action, String target, String details) {
-        // TODO: append a formatted line to the log file (actor/action/target/details/timestamp).
+    	String logEntry = String.format("%s: actor %s, performed action %s on target %s. Details: %s.\n", getTimeStamp(), actor, action, target, details);
+    	
+    	try (FileWriter writer = new FileWriter(this.textFile, true)) {
+    		writer.write(logEntry);
+    	} 
+    	catch (IOException e) {
+    		System.out.println(String.format("An error occured while trying to append an entry to LOG text file with name %s.", this.textFile));
+			e.printStackTrace();
+		}
+    }
+    
+    private String getTimeStamp() {
+    	LocalDateTime now = LocalDateTime.now();
+    	DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    	return now.format(formatter);
     }
 
     public void listAll() {
