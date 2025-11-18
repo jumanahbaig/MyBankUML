@@ -72,6 +72,23 @@ public class Logs {
     }
 
     public void listByUser(String actor) {
-        // TODO: filter log entries by actor and display only matching records.
+    	try (BufferedReader reader = new BufferedReader(new FileReader(this.textFile))) {
+    		String line;
+    		while((line = reader.readLine()) != null) {
+    			String[] lineInfo = line.split(";");
+    			String actorInfo = lineInfo[1];
+    			if (actorInfo.contains(actor)) {
+    				System.out.println(line);
+    			}    			
+    		}
+    	} 
+    	catch (FileNotFoundException e) {
+    		System.out.println(String.format("Could not find LOG text file with name %s when attempting to list all entries with actor %s.", this.textFile, actor));
+			e.printStackTrace();
+		} 
+    	catch (IOException e) {
+    		System.out.println(String.format("An error occured while trying to list entries of LOG text file with name %s by actor %s.", this.textFile, actor));
+			e.printStackTrace();
+		}
     }
 }
