@@ -10,14 +10,28 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
+/**
+ * Utility class for accounting and security traceability. 
+ * Keeps an append-only record of important actions such as logins, account creation, role updates, search/display events and so on for audition purposes. 
+ * 
+ * @author Sebastien, Jumanah
+ */
 public class Logs {
-    private final String textFile;
+    private final String textFile;	// Path to log text file.
     
+    /**
+     * Creates a new log file with the given string path.
+     * 
+     * @param textFile Path to log file.
+     */
     public Logs(String textFile) {
         this.textFile = textFile;
         createLogFile();        
     }
     
+    /**
+     * Creates the Log file if it does not exist.
+     */
     private void createLogFile() {
     	try {
     		File logFile = new File(textFile);
@@ -35,8 +49,16 @@ public class Logs {
 		}
     }
 
+    /**
+     * Appends a new Log entry to the end of the log file.
+     * 
+     * @param actor
+     * @param action
+     * @param target
+     * @param details
+     */
     public void append(String actor, String action, String target, String details) {
-    	String logEntry = String.format("%s: actor %s performed action %s on target %s. Details: %s.", getTimeStamp(), actor, action, target, details);
+    	String logEntry = String.format("%s; Actor: %s; Action: %s; Target %s; Details: %s;", getTimeStamp(), actor, action, target, details);
     	
     	try (BufferedWriter writer = new BufferedWriter(new FileWriter(this.textFile, true))) {
     		writer.write(logEntry);
@@ -46,14 +68,21 @@ public class Logs {
     		System.out.println(String.format("An error occured while trying to append an entry to LOG text file with name %s.", this.textFile));
 			e.printStackTrace();
 		}
-    }
+    }		
     
+    /**
+     * Gets a formatted time stamp for use in append.
+     * @return yyy-MM-dd HH:mm:ss
+     */
     private String getTimeStamp() {
     	LocalDateTime now = LocalDateTime.now();
     	DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
     	return now.format(formatter);
     }
 
+    /**
+     * Displays all log entries in the log file.
+     */
     public void listAll() {    	
     	try (BufferedReader reader = new BufferedReader(new FileReader(this.textFile))) {
     		String line;
@@ -71,6 +100,11 @@ public class Logs {
 		}
     }
 
+    /**
+     * Displays all log entries in the log file for a specific actor.
+     * 
+     * @param actor The person who performed a logged action.
+     */
     public void listByUser(String actor) {
     	try (BufferedReader reader = new BufferedReader(new FileReader(this.textFile))) {
     		String line;
