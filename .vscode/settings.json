@@ -1,3 +1,6 @@
 {
+    "java.project.referencedLibraries": [
+    "libs/lombok-1.18.30.jar"
+    ],
     "java.configuration.updateBuildConfiguration": "automatic"
 }
