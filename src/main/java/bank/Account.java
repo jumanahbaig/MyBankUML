@@ -25,7 +25,7 @@ public abstract class Account {
 
     //method to add transaction to account
     //if deposit, increase balance immediately
-    public void addTransaction(double amount,bool is_deposit, String receipt) {
+    public void addTransaction(double amount, boolean is_deposit, String receipt) {
         int id = transactions.size() + 1; //simple incremental id
         Transaction transaction = new Transaction(id, amount, is_deposit, receipt);
         transactions.add(transaction);

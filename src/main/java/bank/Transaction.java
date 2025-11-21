@@ -11,11 +11,11 @@ public class Transaction {
     //to track what the transaction is about ex: "Deposit", "Withdrawal for rent" etc
     String receipt;
     //to track whether transaction is paid or not, if so add to account balance, if not do nothing
-    bool paid;
+    boolean paid;
     //use to track whether transaction is deposit or withdrawal(aka increse or decrease in account balance)
-    bool is_deposit;
+    boolean is_deposit;
 
-    Transaction(int id, double amount,bool is_deposit, String receipt) {
+    Transaction(int id, double amount, boolean is_deposit, String receipt) {
         //id will be given when transaction is created by the account, 
         //so each account can have same id for their respectif transactions
         this.id = id;
