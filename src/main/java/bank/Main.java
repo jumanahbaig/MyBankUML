@@ -8,7 +8,7 @@ public class Main {
      *  3. Customer 3 opens saving (teller) + card (admin).
      *  4. Customer 4 opens saving then card with teller/admin #2.
      *  5. Customer 5 demonstrates multiple savings/cards (duplicates allowed).
-     *  6. Customer 6 attempts to open another checking account (should be rejected).
+     *  6. Customer 6 attempts to open another checking account (should be rejected). change git
      *
      * Along the way we also show staff persistence and end with classic transaction tests.
      */
