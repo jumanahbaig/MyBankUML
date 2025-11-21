@@ -5,25 +5,91 @@ import lombok.Getter;
 @Getter
 public class Branch {
     private final String address;
+    private final String phoneNumber;
     private final Bank bank;
+    // Currently active user at this branch (null if none)
+    private User activeUser;
+
+    // Optional logging utility
+    private final Logs logs;
 
     public Branch(String address, Bank bank) {
+        this(address, "N/A", bank, null);
+    }
+
+    public Branch(String address, Bank bank, Logs logs) {
+        this(address, "N/A", bank, logs);
+    }
+
+    public Branch(String address, String phoneNumber, Bank bank) {
+        this(address, phoneNumber, bank, null);
+    }
+
+    public Branch(String address, String phoneNumber, Bank bank, Logs logs) {
         this.address = address;
+        this.phoneNumber = phoneNumber;
         this.bank = bank;
+        this.logs = logs;
         // to add to the bank
         bank.addBranch(this);
     }
 
     public void printBranchInfo() {
-        // TODO: include branch-specific stats (active tellers/customers) and use centralized logging.
-        System.out.println("Branch " + address + " From Bank " + bank.getName());
+        System.out.println(getBranchInfo());
     }
 
-    public void userLogin() {
-        // TODO: manage authentication/session tracking for branch-specific logins.
+    public String getBranchInfo() {
+        String activeUserName = (activeUser != null) ? activeUser.getUserName() : "none";
+        return "Branch " + address +
+               " (phone: " + phoneNumber + ")" +
+               " from Bank " + bank.getName() +
+               " | active user: " + activeUserName;
     }
 
-    public void userLogout() {
-        // TODO: invalidate sessions and audit user activity upon logout.
+    public int getActiveUserCount() {
+        return (activeUser != null) ? 1 : 0;
+    }
+
+    public void userLogin(User user) {
+        if (user == null) {
+            throw new IllegalArgumentException("User cannot be null");
+        }
+
+        if (activeUser != null && !activeUser.getUserName().equals(user.getUserName())) {
+            throw new IllegalStateException(
+                "Another user (" + activeUser.getUserName() + ") is already active at this branch."
+            );
+        }
+
+        activeUser = user;
+
+        if (logs != null) {
+            logs.append(
+                user.getUserName(),
+                "LOGIN",
+                address,
+                "User logged in at branch " + address
+            );
+        }
+    }
+
+    public void userLogout(User user) {
+        if (user == null) {
+            return;
+        }
+
+        if (activeUser != null && activeUser.getUserName().equals(user.getUserName())) {
+
+            if (logs != null) {
+                logs.append(
+                    user.getUserName(),
+                    "LOGOUT",
+                    address,
+                    "User logged out from branch " + address
+                );
+            }
+
+            activeUser = null;
+        }
     }
 }

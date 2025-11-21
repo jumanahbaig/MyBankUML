@@ -122,8 +122,11 @@ public class Main {
 
         // === Bank/branch printing demo ===
         Bank bank = new Bank("National Bank");
-        Branch branch1 = new Branch("Branch no1 ", bank);
-        Branch branch2 = new Branch("Branch no2 ", bank);
+        Logs logs = new Logs("branch-log.txt");
+        Branch branch1 = bank.createNewBranch("Branch no1", "555-0001", logs);
+        Branch branch2 = bank.createNewBranch("Branch no2", "555-0002", logs);
+
+        branch1.userLogin(customer);
 
         bank.printBankInfo();
         System.out.println();
@@ -132,5 +135,9 @@ public class Main {
         System.out.println("Card   transactions count:   " + card.getTransactions().size());
         System.out.println("Check  transactions count:   " + check.getTransactions().size());
         System.out.println("Saving transactions count:   " + saving.getTransactions().size());
+
+        branch1.userLogout(customer);
+
+        bank.printBankInfo();
     }
 }

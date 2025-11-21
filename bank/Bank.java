@@ -19,11 +19,22 @@ public class Bank {
         branches.add(branch);
     }
 
+    public Branch createNewBranch(String address, String phoneNumber, Logs logs) {
+        Branch branch = new Branch(address, phoneNumber, this, logs);
+        // Branch constructor already calls bank.addBranch(this), so just return it.
+        return branch;
+    }
+
     public void printBankInfo() {
-        // TODO: replace println with structured logging and include metrics (e.g., # of customers/accounts).
         System.out.println("Bank: " + name);
+        int totalActiveUsers = 0;
         for (Branch branch : branches) {
-            System.out.println("Branch: " + branch.getAddress());
+            System.out.println("  - " + branch.getBranchInfo());
+            totalActiveUsers += branch.getActiveUserCount();
         }
+        System.out.println(
+            "Summary: " + branches.size() + " branch(es), " +
+            totalActiveUsers + " active user(s) across all branches."
+        );
     }
 }
