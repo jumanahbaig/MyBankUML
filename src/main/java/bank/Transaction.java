@@ -13,17 +13,17 @@ public class Transaction {
     //to track whether transaction is paid or not, if so add to account balance, if not do nothing
     boolean paid;
     //use to track whether transaction is deposit or withdrawal(aka increse or decrease in account balance)
-    boolean is_deposit;
+    boolean deposit;
 
-    Transaction(int id, double amount, boolean is_deposit, String receipt) {
+    Transaction(int id, double amount, boolean deposit, String receipt) {
         //id will be given when transaction is created by the account, 
         //so each account can have same id for their respectif transactions
         this.id = id;
         this.amount = amount;
         //true for deposit, false for withdrawal
-        this.is_deposit = is_deposit;
+        this.deposit = deposit;
         //generate receipt based on type of transaction
-        if(is_deposit){
+        if(deposit){
             this.paid = true; //deposits are always "paid", added to balance immediately
             this.receipt = "Deposit of amount: " + amount;
         } else {

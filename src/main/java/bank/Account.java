@@ -12,9 +12,9 @@ public abstract class Account {
     //list of transactions for the account
     protected List<Transaction> transactions;
     //current balance of account
-    protected int balance;
+    protected double balance;
     //amount owed for pending withdrawals
-    protected int owedAmount;
+    protected double owedAmount;
     
 
     public Account(Customer customer) {
@@ -25,11 +25,11 @@ public abstract class Account {
 
     //method to add transaction to account
     //if deposit, increase balance immediately
-    public void addTransaction(double amount, boolean is_deposit, String receipt) {
+    public void addTransaction(double amount, boolean deposit, String receipt) {
         int id = transactions.size() + 1; //simple incremental id
-        Transaction transaction = new Transaction(id, amount, is_deposit, receipt);
+        Transaction transaction = new Transaction(id, amount, deposit, receipt);
         transactions.add(transaction);
-        if(is_deposit){
+        if(deposit){
             //increase balance immediately for deposits
             balance += amount;
         }else{
@@ -44,7 +44,7 @@ public abstract class Account {
     public void pay(int transactionId) {
         for (Transaction transaction : transactions) {
             if (transaction.getId() == transactionId) {
-                if (!transaction.is_deposit()&& !transaction.isPaid()) {
+                if (!transaction.isDeposit() && !transaction.isPaid()) {
                     balance -= transaction.getAmount();
                     owedAmount -= transaction.getAmount();
                     transaction.pay();

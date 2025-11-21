@@ -1,0 +1,4 @@
+2025-11-21 17:50:07; Actor: samtest; Action: LOGIN; Target Test Branch; Details: User logged in at branch Test Branch;
+2025-11-21 17:50:07; Actor: samtest; Action: LOGOUT; Target Test Branch; Details: User logged out from branch Test Branch;
+2025-11-21 17:50:07; Actor: samtest; Action: LOGIN; Target Test Branch; Details: User logged in at branch Test Branch;
+2025-11-21 17:50:07; Actor: samtest; Action: LOGIN; Target Test Branch; Details: User logged in at branch Test Branch;
