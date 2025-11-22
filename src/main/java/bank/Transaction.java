@@ -1,45 +1,47 @@
 package bank;
-import lombok.Getter;
 
-@Getter
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+
 public class Transaction {
+    private final String id;        // Unique transaction ID
+    private final double amount;    // Transaction amount (positive or negative)
+    private final String type;      // "credit" or "debit"
+    private final String description; // e.g., "deposit", "withdrawal"
+    private final LocalDateTime timestamp; // Timestamp when transaction occurred
 
-    //to identify transaction ex 100001, 100002, 200001 etc
-    int id;
-    //to track amount $ involved in transaction
-    double amount;
-    //to track what the transaction is about ex: "Deposit", "Withdrawal for rent" etc
-    String receipt;
-    //to track whether transaction is paid or not, if so add to account balance, if not do nothing
-    boolean paid;
-    //use to track whether transaction is deposit or withdrawal(aka increse or decrease in account balance)
-    boolean is_deposit;
-
-    Transaction(int id, double amount, boolean is_deposit, String receipt) {
-        //id will be given when transaction is created by the account, 
-        //so each account can have same id for their respectif transactions
+    public Transaction(String id, double amount, String type, String description) {
         this.id = id;
         this.amount = amount;
-        //true for deposit, false for withdrawal
-        this.is_deposit = is_deposit;
-        //generate receipt based on type of transaction
-        if(is_deposit){
-            this.paid = true; //deposits are always "paid", added to balance immediately
-            this.receipt = "Deposit of amount: " + amount;
-        } else {
-            this.paid = false; //withdrawals need to be paid, i.e., processed
-            this.receipt = "Withdrawal for: " + receipt + " of amount: " + amount;
-        }
+        this.type = type;
+        this.description = description;
+        this.timestamp = LocalDateTime.now(); // Capture the current time when transaction is created
     }
 
-    
-    public void pay() {
-        this.paid = true;
-        System.out.println("Payment transaction is done.");
+    public String getId() {
+        return id;
     }
 
-    //this as been replace by info field getter
-    // public void receipt() {
-    //     System.out.println("Transaction receipt.");
-    // }
+    public double getAmount() {
+        return amount;
+    }
+
+    public String getType() {
+        return type;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public String getTransactionDetails() {
+        return String.format(
+                "ID: %s, Amount: %.2f, Type: %s, Description: %s, Date: %s",
+                id, amount, type, description, timestamp.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)
+        );
+    }
 }

@@ -63,23 +63,87 @@ public class UserRepository {
         }
     }
 
-    // Currently unused; wire into UI or services before relying on it.
-    public void search() {
-        System.out.println("Searching users.");
-        String sql = "SELECT username, first_name, last_name, role FROM users";
+    /**
+     * Searches for users based on the given criteria.
+     *
+     * @param usernameFragment username to look for (exact match). If null/blank, no username filter is applied.
+     * @param roleFilter role to restrict results to ("CUSTOMER", "TELLER", "ADMIN"), case-insensitive.
+     *                   If null/blank, all roles are allowed.
+     * @return list of matching users (possibly empty)
+     */
+    public List<User> search(String usernameFragment, String roleFilter) {
+        System.out.println("Searching users. username=" + usernameFragment + ", role=" + roleFilter);
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT first_name, last_name, username, password, role FROM users WHERE 1=1"
+        );
+
+        boolean hasUsername = usernameFragment != null && !usernameFragment.isBlank();
+        boolean hasRole = roleFilter != null && !roleFilter.isBlank();
+
+        if (hasUsername) {
+            // For SRS use cases like login and create user, we want exact username matching.
+            sql.append(" AND username = ?");
+        }
+        if (hasRole) {
+            sql.append(" AND UPPER(role) = UPPER(?)");
+        }
+
+        List<User> results = new ArrayList<>();
+
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
-            while (resultSet.next()) {
-                System.out.printf("User %s (%s %s) role=%s%n",
-                        resultSet.getString("username"),
-                        resultSet.getString("first_name"),
-                        resultSet.getString("last_name"),
-                        resultSet.getString("role"));
+             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+
+            int paramIndex = 1;
+            if (hasUsername) {
+                statement.setString(paramIndex++, usernameFragment);
+            }
+            if (hasRole) {
+                statement.setString(paramIndex++, roleFilter);
+            }
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    results.add(mapRowToUser(resultSet));
+                }
             }
         } catch (SQLException e) {
             throw new RuntimeException("Unable to search for users", e);
         }
+
+        return results;
+    }
+
+    /**
+     * Convenience overload used in many SRS scenarios where only username matters,
+     * e.g., login or checking if a user already exists before creation.
+     */
+    public List<User> search(String usernameFragment) {
+        return search(usernameFragment, null);
+    }
+
+    /**
+     * Returns all users with the given role (e.g. "CUSTOMER", "TELLER", "ADMIN").
+     * If role is null/blank, returns all users.
+     */
+    public List<User> searchByRole(String role) {
+        return search(null, role);
+    }
+
+    /**
+     * SRS: used by tellers to search customers.
+     * Teller can only search CUSTOMER users, optionally filtered by username.
+     */
+    public List<User> searchCustomersForTeller(String usernameFragment) {
+        return search(usernameFragment, "CUSTOMER");
+    }
+
+    /**
+     * SRS: used by admins to search any user type (CUSTOMER, TELLER, ADMIN)
+     * based on username and optional role filter. If roleFilter is null, all roles are allowed.
+     */
+    public List<User> searchForAdmin(String usernameFragment, String roleFilter) {
+        return search(usernameFragment, roleFilter);
     }
 
     // Currently unused; available if we ever cache user entities again.
@@ -112,6 +176,21 @@ public class UserRepository {
 
     public void listAll() {
         // TODO: load and display every user in the repository with pagination/filtering.
+    }
+
+    public void updatePassword(User user) {
+        String sql = "UPDATE users SET password = ? WHERE username = ?";
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, user.getPassword());
+            statement.setString(2, user.getUserName());
+            statement.executeUpdate();
+
+            userList.removeIf(existing -> existing.getUserName().equals(user.getUserName()));
+            userList.add(user);
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to update password for " + user.getUserName(), e);
+        }
     }
 
     private boolean canDelete(User user) {

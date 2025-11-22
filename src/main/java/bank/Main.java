@@ -8,7 +8,7 @@ public class Main {
      *  3. Customer 3 opens saving (teller) + card (admin).
      *  4. Customer 4 opens saving then card with teller/admin #2.
      *  5. Customer 5 demonstrates multiple savings/cards (duplicates allowed).
-     *  6. Customer 6 attempts to open another checking account (should be rejected).
+     *  6. Customer 6 attempts to open another checking account (should be rejected). change git
      *
      * Along the way we also show staff persistence and end with classic transaction tests.
      */
@@ -98,26 +98,22 @@ public class Main {
 
         // TODO: Test 8 - simulate concurrent account creation/user onboarding using threads/executors.
 
-        // === Legacy transaction demo for the first customer's accounts ===
-        Transaction t1 = new Transaction();
-        Transaction t2 = new Transaction();
-        Transaction t3 = new Transaction();
+        // === Transaction demo for the first customer's accounts ===
+        card.addTransaction(100.0, true, "Card payment");
+        check.addTransaction(200.0, true, "Check payment");
+        saving.addTransaction(300.0, true, "Saving deposit");
 
-        card.addTransaction(t1);
-        check.addTransaction(t2);
-        saving.addTransaction(t3);
-
-        // Transactions
-        card.pay();
-        card.receipt();
+        // Process and print receipts for the first transaction (index 0) of each account
+        card.pay(0);
+        card.receipt(0);
         System.out.println();
 
-        check.pay();
-        check.receipt();
+        check.pay(0);
+        check.receipt(0);
         System.out.println();
 
-        saving.pay();
-        saving.receipt();
+        saving.pay(0);
+        saving.receipt(0);
         System.out.println();
 
         // === Bank/branch printing demo ===
