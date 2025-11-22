@@ -61,3 +61,7 @@ frontend/.vite/
 frontend/**/*.md
 !frontend/README.md
 .*/
+
+# Application and test log files
+*log.txt
+*-log.txt

@@ -1,5 +1,9 @@
 package bank;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -8,9 +12,19 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BranchTest {
 
+    private Logs createTempLogs() {
+        try {
+            Path logPath = Files.createTempFile("branch-test-log-", ".txt");
+            logPath.toFile().deleteOnExit();
+            return new Logs(logPath.toString());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to create temp log file for tests", e);
+        }
+    }
+
     @Test
     void loginRegistersActiveUser() {
-        Logs logs = new Logs("test-branch-log.txt");
+        Logs logs = createTempLogs();
         Bank bank = new Bank("Test Bank");
         Branch branch = bank.createNewBranch("Test Branch", "555-0000", logs);
 
@@ -23,7 +37,7 @@ class BranchTest {
 
     @Test
     void logoutClearsActiveUser() {
-        Logs logs = new Logs("test-branch-log.txt");
+        Logs logs = createTempLogs();
         Bank bank = new Bank("Test Bank");
         Branch branch = bank.createNewBranch("Test Branch", "555-0000", logs);
         Customer customer = new Customer("Sam", "Test", "samtest", "pass123");
@@ -36,7 +50,7 @@ class BranchTest {
 
     @Test
     void getBranchInfoContainsKeyDetails() {
-        Logs logs = new Logs("test-branch-log.txt");
+        Logs logs = createTempLogs();
         Bank bank = new Bank("Test Bank");
         Branch branch = bank.createNewBranch("Test Branch", "555-0000", logs);
         Customer customer = new Customer("Sam", "Test", "samtest", "pass123");
@@ -52,7 +66,7 @@ class BranchTest {
 
     @Test
     void createNewBranchAddsBranchToBank() {
-        Logs logs = new Logs("test-branch-log.txt");
+        Logs logs = createTempLogs();
         Bank bank = new Bank("Test Bank");
 
         Branch branch = bank.createNewBranch("Test Branch", "555-0000", logs);
