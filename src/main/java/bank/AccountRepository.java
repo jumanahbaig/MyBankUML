@@ -12,11 +12,17 @@ public class AccountRepository {
     private List<Account> accountList;
     // Shared DatabaseManager ensures every repository instance talks to the same SQLite file.
     private final DatabaseManager databaseManager;
+    private final Logs logs;
 
     public AccountRepository(DatabaseManager databaseManager) {
+        this(databaseManager, null);
+    }
+
+    public AccountRepository(DatabaseManager databaseManager, Logs logs) {
         this.databaseManager = databaseManager;
         this.databaseManager.initialize();
         this.accountList = new ArrayList<>();
+        this.logs = logs;
     }
 
     public void addAccount(Account account) {
@@ -56,6 +62,37 @@ public class AccountRepository {
                     && existing.getCustomer().getUserName().equals(account.getCustomer().getUserName()));
         } catch (SQLException e) {
             throw new RuntimeException("Unable to delete account for " + account.getCustomer().getUserName(), e);
+        }
+    }
+
+    /**
+     * Deletes an account by account number (if it exists) and logs the deletion when possible.
+     * Only ADMIN role may delete accounts.
+     */
+    public void deleteAccount(String accountNumber, String userRole) {
+        if (userRole == null || !"ADMIN".equalsIgnoreCase(userRole)) {
+            throw new IllegalStateException("Only admins can delete accounts.");
+        }
+
+        String sql = "DELETE FROM accounts WHERE account_number = ?";
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, accountNumber);
+            int rows = statement.executeUpdate();
+            if (rows > 0) {
+                if (logs != null) {
+                    logs.append(
+                        "SYSTEM",
+                        "DELETE_ACCOUNT",
+                        accountNumber,
+                        "Account " + accountNumber + " deleted by admin."
+                    );
+                }
+            } else {
+                System.out.println("Account with number " + accountNumber + " does not exist.");
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Error deleting account", e);
         }
     }
 
@@ -133,9 +170,64 @@ public class AccountRepository {
         this.accountList = accountList;
     }
 
-    // Currently unused; add filtering logic + callers before shipping.
-    public void search(String criteria) {
-        // TODO: implement account search (by customer, account number, or type) with SQL filtering.
+    /**
+     * Searches accounts by optional account number, account type, and customer username.
+     * If all filters are null/blank, returns all accounts.
+     */
+    public List<Account> search(String accountNumber, String accountType, String username) {
+        List<Account> results = new ArrayList<>();
+
+        StringBuilder sql = new StringBuilder(
+                "SELECT a.account_type, a.account_number, u.first_name, u.last_name, u.username, u.password " +
+                        "FROM accounts a " +
+                        "JOIN users u ON u.id = a.customer_id " +
+                        "WHERE 1=1"
+        );
+
+        boolean hasNumber = accountNumber != null && !accountNumber.isBlank();
+        boolean hasType = accountType != null && !accountType.isBlank();
+        boolean hasUser = username != null && !username.isBlank();
+
+        if (hasNumber) {
+            sql.append(" AND a.account_number = ?");
+        }
+        if (hasType) {
+            sql.append(" AND a.account_type = ?");
+        }
+        if (hasUser) {
+            sql.append(" AND u.username = ?");
+        }
+
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+
+            int paramIndex = 1;
+            if (hasNumber) {
+                statement.setString(paramIndex++, accountNumber);
+            }
+            if (hasType) {
+                statement.setString(paramIndex++, accountType.toUpperCase());
+            }
+            if (hasUser) {
+                statement.setString(paramIndex++, username);
+            }
+
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    Customer owner = new Customer(
+                            resultSet.getString("first_name"),
+                            resultSet.getString("last_name"),
+                            resultSet.getString("username"),
+                            resultSet.getString("password")
+                    );
+                    results.add(createAccountInstance(resultSet.getString("account_type"), owner));
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to search accounts", e);
+        }
+
+        return results;
     }
 
     /**
