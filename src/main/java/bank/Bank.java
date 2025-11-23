@@ -9,10 +9,22 @@ import java.util.List;
 public class Bank {
     private final String name;
     private final List<Branch> branches;
+    private final Logs bankLogs;
+    private final UserRepository userlist;
+    private final AccountRepository cardAccount;
+    private final AccountRepository checkAccount;
+    private final AccountRepository savingAccount;
 
     public Bank(String name) {
         this.name = name;
         this.branches = new ArrayList<>();
+        DatabaseManager databaseManager = new DatabaseManager();
+        this.userlist = new UserRepository(databaseManager);
+        this.cardAccount = new AccountRepository(databaseManager);
+        this.checkAccount = new AccountRepository(databaseManager);
+        this.savingAccount = new AccountRepository(databaseManager);
+        this.bankLogs = new Logs("bank-log.txt");
+
     }
 
     public void addBranch(Branch branch) {
