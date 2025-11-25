@@ -7,11 +7,13 @@
 From the `backend` directory:
 
 ### 1. Install dependencies (first time only)
+
 ```cmd
 mvn clean install
 ```
 
 ### 2. Run the server
+
 ```cmd
 mvn exec:java
 ```
@@ -19,17 +21,6 @@ mvn exec:java
 Server runs on **http://localhost:8080**
 
 The database (`bank.db`) is pre-populated and committed in the project root. Maven is configured to use the root directory as the working directory via `<workingDirectory>..</workingDirectory>` in pom.xml.
-
-## Test Credentials
-
-| Role | Username | Password |
-|------|----------|----------|
-| Admin | admin | password123 |
-| Teller | teller | password123 |
-| Customer | customer | password123 |
-| Customer | bob | password123 |
-| Customer | emma | password123 |
-| Customer | james | password123 |
 
 ## API Endpoints
 
@@ -44,6 +35,7 @@ The database (`bank.db`) is pre-populated and committed in the project root. Mav
 ## Frontend
 
 Start the frontend in a separate terminal:
+
 ```cmd
 cd ..\frontend
 npm run dev
