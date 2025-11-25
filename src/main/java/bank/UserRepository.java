@@ -175,7 +175,25 @@ public class UserRepository {
     }
 
     public void listAll() {
-        // TODO: load and display every user in the repository with pagination/filtering.
+        String sql = "SELECT first_name, last_name, username, password, role FROM users";
+        boolean found = false;
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql);
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                User user = mapRowToUser(resultSet);
+                found = true;
+                if (user != null) {
+                    user.printUserInfo();
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to list users", e);
+        }
+
+        if (!found) {
+            System.out.println("No users found.");
+        }
     }
 
     public void updatePassword(User user) {
@@ -190,6 +208,20 @@ public class UserRepository {
             userList.add(user);
         } catch (SQLException e) {
             throw new RuntimeException("Unable to update password for " + user.getUserName(), e);
+        }
+    }
+
+    public void updatePassword(String username, String newPassword) {
+        String sql = "UPDATE users SET password = ? WHERE username = ?";
+
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, newPassword);
+            statement.setString(2, username);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update password for user: " + username, e);
         }
     }
 

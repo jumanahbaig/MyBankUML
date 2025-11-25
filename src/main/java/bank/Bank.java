@@ -32,9 +32,7 @@ public class Bank {
     }
 
     public Branch createNewBranch(String address, String phoneNumber, Logs logs) {
-        Branch branch = new Branch(address, phoneNumber, this, logs);
-        // Branch constructor already calls bank.addBranch(this), so just return it.
-        return branch;
+        return new Branch(address, phoneNumber, this, logs);
     }
 
     public void printBankInfo() {

@@ -11,7 +11,7 @@ public abstract class Account {
     protected Customer customer;
     //list of transactions for the account
     protected List<Transaction> transactions;
-    //cached balance (recomputed when transactions change)
+    //cached balance
     protected double balance;
     //amount owed for pending withdrawals
     protected double owedAmount;
@@ -19,24 +19,8 @@ public abstract class Account {
 
     public Account(Customer customer) {
         this.customer = customer;
-        this.balance = 0;
         this.transactions = new ArrayList<>();
-    }
-
-    /**
-     * Calculates the current balance from all transactions.
-     */
-    public double getBalance() {
-        double runningBalance = 0.0;
-        for (Transaction t : transactions) {
-            if ("credit".equals(t.getType())) {
-                runningBalance += t.getAmount();
-            } else if ("debit".equals(t.getType())) {
-                runningBalance -= t.getAmount();
-            }
-        }
-        this.balance = runningBalance;
-        return runningBalance;
+        this.balance = 0.0;
     }
 
     //method to add transaction to account via primitive params
@@ -49,7 +33,11 @@ public abstract class Account {
     //method to add transaction to account
     public void addTransaction(Transaction transaction) {
         transactions.add(transaction);
-        updateBalance(transaction);
+        if ("credit".equalsIgnoreCase(transaction.getType())) {
+            balance += transaction.getAmount();
+        } else if ("debit".equalsIgnoreCase(transaction.getType())) {
+            balance -= transaction.getAmount();
+        }
     }
 
     //method to pay for a transaction by index
@@ -92,32 +80,24 @@ public abstract class Account {
      * If both criteria are null, returns all transactions.
      */
     public List<Transaction> searchTransactions(String transactionType, Double amount) {
-        List<Transaction> filteredTransactions = new ArrayList<>();
+        List<Transaction> result = new ArrayList<>();
 
-        for (Transaction transaction : transactions) {
+        for (Transaction t : transactions) {
             boolean matches = true;
 
-            if (transactionType != null && !transactionType.equals(transaction.getType())) {
+            if (transactionType != null && !transactionType.equalsIgnoreCase(t.getType())) {
                 matches = false;
             }
 
-            if (amount != null && transaction.getAmount() != amount) {
+            if (amount != null && Double.compare(amount, t.getAmount()) != 0) {
                 matches = false;
             }
 
             if (matches) {
-                filteredTransactions.add(transaction);
+                result.add(t);
             }
         }
 
-        return filteredTransactions;
-    }
-
-    private void updateBalance(Transaction transaction) {
-        if ("debit".equals(transaction.getType())) {
-            balance -= transaction.getAmount();
-        } else if ("credit".equals(transaction.getType())) {
-            balance += transaction.getAmount();
-        }
+        return result;
     }
 }

@@ -22,9 +22,12 @@ public abstract class User {
     }
 
     public void printUserInfo() {
-        System.out.println("==== " + getClass().getSimpleName() + " Profile ====");
-        System.out.println("Name: " + firstName + " " + lastName);
-        System.out.println("Username: " + userName);
+        String roleLabel = "USER";
+        System.out.println(
+            "Username: " + getUserName()
+                + " | Name: " + getFirstName() + " " + getLastName()
+                + " | Role: " + roleLabel
+        );
     }
 
     public String getFirstName() {

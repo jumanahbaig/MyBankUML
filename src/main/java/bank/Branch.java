@@ -13,25 +13,16 @@ public class Branch {
     // Optional logging utility
     private final Logs logs;
 
-    public Branch(String address, Bank bank) {
-        this(address, "N/A", bank, null);
-    }
-
-    public Branch(String address, Bank bank, Logs logs) {
-        this(address, "N/A", bank, logs);
-    }
-
-    public Branch(String address, String phoneNumber, Bank bank) {
-        this(address, phoneNumber, bank, null);
-    }
-
     public Branch(String address, String phoneNumber, Bank bank, Logs logs) {
         this.address = address;
         this.phoneNumber = phoneNumber;
         this.bank = bank;
         this.logs = logs;
-        // to add to the bank
         bank.addBranch(this);
+    }
+
+    public Branch(String address, Bank bank) {
+        this(address, null, bank, null);
     }
 
     public void printBranchInfo() {

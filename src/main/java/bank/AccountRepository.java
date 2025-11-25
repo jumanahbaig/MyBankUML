@@ -231,6 +231,46 @@ public class AccountRepository {
     }
 
     /**
+     * Displays all accounts for the given username (SRS requirement).
+     * Prints one line per account; prints a "no accounts" message if none are found.
+     */
+    public void displayAccountsForCustomer(String username) {
+        String sql = "SELECT a.account_type, a.account_number, a.balance, u.first_name, u.last_name, u.username, u.password " +
+                     "FROM accounts a " +
+                     "JOIN users u ON u.id = a.customer_id " +
+                     "WHERE u.username = ?";
+
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+
+            statement.setString(1, username);
+
+            boolean found = false;
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    found = true;
+                    Account account = mapRowToAccount(resultSet);
+                    String accountNumber = resultSet.getString("account_number");
+                    double balance = resultSet.getDouble("balance");
+
+                    System.out.println(
+                        "Account " + accountNumber +
+                        " | Type: " + account.getClass().getSimpleName() +
+                        " | Balance: " + balance
+                    );
+                }
+            }
+
+            if (!found) {
+                System.out.println("No accounts found for user: " + username);
+            }
+
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to display accounts for user: " + username, e);
+        }
+    }
+
+    /**
      * Generates the next globally unique account number in the format ACCT-XXXXXXXXXX.
      * Relies on the database to track the highest value, avoiding duplicates even across restarts.
      */
@@ -280,5 +320,15 @@ public class AccountRepository {
             default:
                 throw new IllegalArgumentException("Unknown account type: " + accountType);
         }
+    }
+
+    private Account mapRowToAccount(ResultSet resultSet) throws SQLException {
+        Customer owner = new Customer(
+                resultSet.getString("first_name"),
+                resultSet.getString("last_name"),
+                resultSet.getString("username"),
+                resultSet.getString("password")
+        );
+        return createAccountInstance(resultSet.getString("account_type"), owner);
     }
 }

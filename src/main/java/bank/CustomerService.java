@@ -79,6 +79,63 @@ public class CustomerService {
         return userRepository.searchForAdmin(usernameFragment, roleFilter);
     }
 
+    public List<User> searchUsersAtBranch(String searchTerm, Branch branch) {
+        List<User> results = userRepository.search(searchTerm);
+
+        if (branch != null) {
+            Logs branchLogs = branch.getLogs();
+            if (branchLogs != null) {
+                branchLogs.append(
+                    "SYSTEM",
+                    "SEARCH_USERS",
+                    branch.getAddress(),
+                    "Search performed with term: " + searchTerm + ", results: " + results.size()
+                );
+            }
+        }
+
+        return results;
+    }
+
+    public void displayCustomerAccountsAtBranch(String username, Branch branch) {
+        accountRepository.displayAccountsForCustomer(username);
+
+        if (branch != null) {
+            Logs branchLogs = branch.getLogs();
+            if (branchLogs != null) {
+                branchLogs.append(
+                    username,
+                    "DISPLAY_ACCOUNTS",
+                    branch.getAddress(),
+                    "Displayed all accounts for user " + username + " at branch."
+                );
+            }
+        }
+    }
+
+    public String adminResetPassword(String username) {
+        List<User> matches = userRepository.search(username);
+        if (matches.isEmpty()) {
+            System.out.println("No user found with username: " + username);
+            return null;
+        }
+
+        String tempPassword = java.util.UUID.randomUUID().toString();
+        userRepository.updatePassword(username, tempPassword);
+
+        if (logs != null) {
+            logs.append(
+                "ADMIN",
+                "PASSWORD_RESET",
+                username,
+                "Admin reset password and issued temporary token."
+            );
+        }
+
+        System.out.println("Temporary password issued for user " + username + ": " + tempPassword);
+        return tempPassword;
+    }
+
     /**
      * Handles user login with simple username/password verification and optional logging.
      *

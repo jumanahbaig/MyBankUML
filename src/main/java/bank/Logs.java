@@ -16,21 +16,6 @@ public class Logs {
 
     public Logs(String textFile) {
         this.textFile = textFile;
-
-        File file = new File(textFile);
-        try {
-            if (file.exists()) {
-                System.out.println("Log file with name " + textFile + " already exists.");
-            } else {
-                if (file.createNewFile()) {
-                    System.out.println("Successfully created log file with name " + textFile + ".");
-                } else {
-                    System.out.println("Failed to create log file with name " + textFile + ".");
-                }
-            }
-        } catch (IOException e) {
-            throw new RuntimeException("Unable to initialize log file: " + textFile, e);
-        }
     }
 
     /**
@@ -40,17 +25,16 @@ public class Logs {
      */
     public void append(String actor, String action, String target, String details) {
         String timestamp = LocalDateTime.now().format(TIMESTAMP_FORMAT);
-        String line = timestamp +
-                "; Actor: " + actor +
-                "; Action: " + action +
-                "; Target " + target +
-                "; Details: " + details + ";";
+        String line = String.format(
+            "%s; Actor: %s; Action: %s; Target: %s; Details: %s",
+            timestamp, actor, action, target, details
+        );
 
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(textFile, true))) {
             writer.write(line);
             writer.newLine();
         } catch (IOException e) {
-            throw new RuntimeException("Unable to append to log file: " + textFile, e);
+            throw new RuntimeException("Failed to write to log file: " + textFile, e);
         }
     }
 
@@ -58,30 +42,35 @@ public class Logs {
      * Reads and prints every log entry from the file.
      */
     public void listAll() {
-        try (BufferedReader reader = new BufferedReader(new FileReader(textFile))) {
+        File file = new File(textFile);
+        if (!file.exists()) {
+            return;
+        }
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 System.out.println(line);
             }
         } catch (IOException e) {
-            throw new RuntimeException("Unable to read log file: " + textFile, e);
+            throw new RuntimeException("Failed to read log file: " + textFile, e);
         }
     }
 
     /**
      * Reads the log file and prints only entries for the given actor.
      * A log line is considered to belong to an actor if it contains:
-     *   "; Actor: <actor>;"
+     *   "Actor: <actor>;"
      */
     public void listByUser(String actor) {
-        if (actor == null || actor.isBlank()) {
-            listAll();
+        File file = new File(textFile);
+        if (!file.exists()) {
             return;
         }
 
-        String marker = "; Actor: " + actor + ";";
+        String marker = "Actor: " + actor + ";";
 
-        try (BufferedReader reader = new BufferedReader(new FileReader(textFile))) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(file))) {
             String line;
             while ((line = reader.readLine()) != null) {
                 if (line.contains(marker)) {
@@ -89,7 +78,7 @@ public class Logs {
                 }
             }
         } catch (IOException e) {
-            throw new RuntimeException("Unable to read log file for actor " + actor + ": " + textFile, e);
+            throw new RuntimeException("Failed to read log file: " + textFile, e);
         }
     }
 }
