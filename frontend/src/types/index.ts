@@ -10,7 +10,7 @@ export type TransactionStatus = 'pending' | 'completed' | 'failed' | 'cancelled'
 
 export interface User {
   id: string;
-  email: string;
+  username: string;
   firstName: string;
   lastName: string;
   role: UserRole;
@@ -51,7 +51,7 @@ export interface PasswordResetRequest {
 
 export interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   isAuthenticated: boolean;
   isLoading: boolean;

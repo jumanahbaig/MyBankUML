@@ -9,10 +9,10 @@ import { useToast } from '@/hooks/use-toast';
 import { Lock } from 'lucide-react';
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
 
   const { login, isAuthenticated } = useAuth();
   const navigate = useNavigate();
@@ -27,12 +27,10 @@ export default function LoginPage() {
   }
 
   const validateForm = (): boolean => {
-    const newErrors: { email?: string; password?: string } = {};
+    const newErrors: { username?: string; password?: string } = {};
 
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
+    if (!username) {
+      newErrors.username = 'Username is required';
     }
 
     if (!password) {
@@ -56,7 +54,7 @@ export default function LoginPage() {
     setErrors({});
 
     try {
-      await login(email, password);
+      await login(username, password);
 
       toast({
         title: 'Login successful',
@@ -102,18 +100,18 @@ export default function LoginPage() {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading}
-                className={errors.email ? 'border-destructive' : ''}
+                className={errors.username ? 'border-destructive' : ''}
               />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
+              {errors.username && (
+                <p className="text-sm text-destructive">{errors.username}</p>
               )}
             </div>
 
@@ -150,9 +148,9 @@ export default function LoginPage() {
           <div className="mt-6 p-4 bg-muted rounded-md">
             <p className="text-xs text-muted-foreground font-semibold mb-2">Demo Credentials:</p>
             <div className="text-xs text-muted-foreground space-y-1">
-              <p>Customer: customer@example.com / password123</p>
-              <p>Teller: teller@example.com / password123</p>
-              <p>Admin: admin@example.com / password123</p>
+              <p>Customer: customer / password123</p>
+              <p>Teller: teller / password123</p>
+              <p>Admin: admin / password123</p>
             </div>
           </div>
         </CardContent>

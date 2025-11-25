@@ -1,62 +1,112 @@
 import { User, Account, Transaction, PasswordResetRequest } from '@/types';
-import {
-  mockUsers,
-  mockAccounts,
-  mockTransactions,
-  mockPasswordResetRequests,
-  mockCredentials,
-} from './mockData';
 
-// Simulate network delay
-const delay = (ms: number = 800) => new Promise((resolve) => setTimeout(resolve, ms));
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+
+const getAuthToken = (): string | null => {
+  return localStorage.getItem('token');
+};
+
+const getAuthHeaders = (): HeadersInit => {
+  const token = getAuthToken();
+  return {
+    'Content-Type': 'application/json',
+    ...(token && { Authorization: `Bearer ${token}` }),
+  };
+};
+
+const handleResponse = async (response: Response) => {
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({ message: 'An error occurred' }));
+    throw new Error(error.message || 'Request failed');
+  }
+  return response.json();
+};
+
+const mapAccountType = (backendType: string): Account['accountType'] => {
+  const typeMap: Record<string, Account['accountType']> = {
+    'check': 'checking',
+    'saving': 'savings',
+    'card': 'checking',
+  };
+  return typeMap[backendType.toLowerCase()] || 'checking';
+};
 
 class ApiService {
   // Authentication
-  async login(email: string, password: string): Promise<User> {
-    await delay();
+  async login(username: string, password: string): Promise<{ user: User; token: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
 
-    const validPassword = mockCredentials[email as keyof typeof mockCredentials];
+    const data = await handleResponse(response);
 
-    if (!validPassword || validPassword !== password) {
-      throw new Error('Invalid credentials');
-    }
-
-    const user = mockUsers.find((u) => u.email === email);
-
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    if (!user.isActive) {
-      throw new Error('Account is disabled. Please contact support.');
-    }
-
-    return user;
+    return {
+      user: {
+        id: String(data.user.id),
+        username: data.user.username,
+        firstName: data.user.firstName,
+        lastName: data.user.lastName,
+        role: data.user.role,
+        isActive: data.user.isActive,
+        createdAt: data.user.createdAt,
+      },
+      token: data.token,
+    };
   }
 
-  async requestPasswordReset(email: string): Promise<void> {
-    await delay();
-
-    const user = mockUsers.find((u) => u.email === email);
-
-    if (!user) {
-      // Don't reveal if user exists
-      return;
-    }
-
-    // In a real app, this would create a password reset request
-    console.log('Password reset requested for:', email);
+  async requestPasswordReset(username: string): Promise<void> {
+    await fetch(`${API_BASE_URL}/api/auth/password-reset/request`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    });
   }
 
   // Account operations
   async getAccountsByCustomerId(customerId: string): Promise<Account[]> {
-    await delay();
-    return mockAccounts.filter((acc) => acc.customerId === customerId);
+    const response = await fetch(`${API_BASE_URL}/api/customers/${customerId}/accounts`, {
+      headers: getAuthHeaders(),
+    });
+
+    const accounts = await handleResponse(response);
+
+    return accounts.map((acc: any) => ({
+      id: String(acc.id),
+      accountNumber: acc.accountNumber,
+      accountName: acc.customerName,
+      accountType: mapAccountType(acc.accountType),
+      balance: acc.balance,
+      status: 'active' as const,
+      customerId: String(acc.customerId),
+      createdAt: acc.createdAt,
+      updatedAt: acc.createdAt,
+    }));
   }
 
   async getAccountById(accountId: string): Promise<Account | null> {
-    await delay();
-    return mockAccounts.find((acc) => acc.id === accountId) || null;
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}`, {
+        headers: getAuthHeaders(),
+      });
+
+      const acc = await handleResponse(response);
+
+      return {
+        id: String(acc.id),
+        accountNumber: acc.accountNumber,
+        accountName: acc.customerName,
+        accountType: mapAccountType(acc.accountType),
+        balance: acc.balance,
+        status: 'active' as const,
+        customerId: String(acc.customerId),
+        createdAt: acc.createdAt,
+        updatedAt: acc.createdAt,
+      };
+    } catch {
+      return null;
+    }
   }
 
   async searchAccounts(query: string, page: number = 1, limit: number = 10): Promise<{
@@ -65,35 +115,54 @@ class ApiService {
     page: number;
     totalPages: number;
   }> {
-    await delay(1000);
+    const params = new URLSearchParams({
+      query: query || '',
+      page: String(page),
+      limit: String(limit),
+    });
 
-    let filtered = mockAccounts;
+    const response = await fetch(`${API_BASE_URL}/api/accounts/search?${params}`, {
+      headers: getAuthHeaders(),
+    });
 
-    if (query) {
-      const lowerQuery = query.toLowerCase();
-      filtered = mockAccounts.filter(
-        (acc) =>
-          acc.accountNumber.includes(query) ||
-          acc.accountName.toLowerCase().includes(lowerQuery)
-      );
-    }
-
-    const start = (page - 1) * limit;
-    const end = start + limit;
-    const paginated = filtered.slice(start, end);
+    const data = await handleResponse(response);
 
     return {
-      accounts: paginated,
-      total: filtered.length,
-      page,
-      totalPages: Math.ceil(filtered.length / limit),
+      accounts: data.accounts.map((acc: any) => ({
+        id: String(acc.id),
+        accountNumber: acc.accountNumber,
+        accountName: acc.customerName,
+        accountType: mapAccountType(acc.accountType),
+        balance: acc.balance,
+        status: 'active' as const,
+        customerId: String(acc.customerId),
+        createdAt: acc.createdAt,
+        updatedAt: acc.createdAt,
+      })),
+      total: data.totalAccounts,
+      page: data.currentPage,
+      totalPages: data.totalPages,
     };
   }
 
   // Transaction operations
   async getTransactionsByAccountId(accountId: string): Promise<Transaction[]> {
-    await delay();
-    return mockTransactions.filter((txn) => txn.accountId === accountId);
+    const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}/transactions`, {
+      headers: getAuthHeaders(),
+    });
+
+    const transactions = await handleResponse(response);
+
+    return transactions.map((txn: any) => ({
+      id: String(txn.id),
+      accountId: accountId,
+      type: this.mapBackendTransactionType(txn.type),
+      amount: txn.amount,
+      status: 'completed' as const,
+      description: txn.description || '',
+      createdAt: txn.createdAt,
+      completedAt: txn.createdAt,
+    }));
   }
 
   async createTransaction(
@@ -102,96 +171,103 @@ class ApiService {
     amount: number,
     description: string
   ): Promise<Transaction> {
-    await delay(1200);
+    const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}/transactions`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ type, amount, description }),
+    });
 
-    const account = mockAccounts.find((acc) => acc.id === accountId);
+    const txn = await handleResponse(response);
 
-    if (!account) {
-      throw new Error('Account not found');
-    }
-
-    // Check balance for withdrawals and payments
-    if ((type === 'withdrawal' || type === 'payment') && account.balance < amount) {
-      throw new Error('Insufficient funds');
-    }
-
-    const newTransaction: Transaction = {
-      id: `txn-${Date.now()}`,
-      accountId,
-      type,
-      amount,
-      status: 'completed',
-      description,
-      createdAt: new Date().toISOString(),
-      completedAt: new Date().toISOString(),
+    return {
+      id: String(txn.id),
+      accountId: accountId,
+      type: this.mapBackendTransactionType(txn.type),
+      amount: txn.amount,
+      status: 'completed' as const,
+      description: txn.description || '',
+      createdAt: txn.createdAt,
+      completedAt: txn.createdAt,
     };
-
-    // Update account balance (in-memory only for mock)
-    if (type === 'deposit') {
-      account.balance += amount;
-    } else if (type === 'withdrawal' || type === 'payment') {
-      account.balance -= amount;
-    }
-
-    return newTransaction;
   }
 
   // User management (Admin operations)
   async getAllUsers(): Promise<User[]> {
-    await delay();
-    return mockUsers;
+    const response = await fetch(`${API_BASE_URL}/api/users`, {
+      headers: getAuthHeaders(),
+    });
+
+    const users = await handleResponse(response);
+
+    return users.map((user: any) => ({
+      id: String(user.id),
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    }));
   }
 
   async updateUserRole(userId: string, role: User['role']): Promise<User> {
-    await delay();
+    const response = await fetch(`${API_BASE_URL}/api/users/${userId}/role`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ role }),
+    });
 
-    const user = mockUsers.find((u) => u.id === userId);
+    const user = await handleResponse(response);
 
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    user.role = role;
-    return user;
+    return {
+      id: String(user.id),
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    };
   }
 
   async toggleUserStatus(userId: string): Promise<User> {
-    await delay();
+    const response = await fetch(`${API_BASE_URL}/api/users/${userId}/status`, {
+      method: 'PUT',
+      headers: getAuthHeaders(),
+    });
 
-    const user = mockUsers.find((u) => u.id === userId);
+    const user = await handleResponse(response);
 
-    if (!user) {
-      throw new Error('User not found');
-    }
-
-    user.isActive = !user.isActive;
-    return user;
+    return {
+      id: String(user.id),
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    };
   }
 
   // Password reset requests (Admin operations)
   async getPasswordResetRequests(): Promise<PasswordResetRequest[]> {
-    await delay();
-    return mockPasswordResetRequests.filter((req) => req.status === 'pending');
+    return [];
   }
 
   async approvePasswordResetRequest(requestId: string): Promise<void> {
-    await delay();
-
-    const request = mockPasswordResetRequests.find((req) => req.id === requestId);
-
-    if (request) {
-      request.status = 'approved';
-    }
+    console.log('Approving password reset request:', requestId);
   }
 
   async rejectPasswordResetRequest(requestId: string): Promise<void> {
-    await delay();
+    console.log('Rejecting password reset request:', requestId);
+  }
 
-    const request = mockPasswordResetRequests.find((req) => req.id === requestId);
-
-    if (request) {
-      request.status = 'rejected';
-    }
+  private mapBackendTransactionType(backendType: string): Transaction['type'] {
+    const typeMap: Record<string, Transaction['type']> = {
+      'credit': 'deposit',
+      'debit': 'withdrawal',
+    };
+    return typeMap[backendType.toLowerCase()] || 'deposit';
   }
 }
 

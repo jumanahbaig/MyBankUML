@@ -17,17 +17,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error('Failed to parse stored user:', error);
         localStorage.removeItem('user');
+        localStorage.removeItem('token');
       }
     }
     setIsLoading(false);
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (username: string, password: string) => {
     setIsLoading(true);
     try {
-      const user = await api.login(email, password);
+      const { user, token } = await api.login(username, password);
       setUser(user);
       localStorage.setItem('user', JSON.stringify(user));
+      localStorage.setItem('token', token);
     } catch (error) {
       throw error;
     } finally {
@@ -38,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    localStorage.removeItem('token');
   };
 
   const value: AuthContextType = {

@@ -3,13 +3,18 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0
          http://maven.apache.org/xsd/maven-4.0.0.xsd">
-    
+
     <modelVersion>4.0.0</modelVersion>
-    
+
     <groupId>BankUml</groupId>
-    <artifactId>BankUml</artifactId>
+    <artifactId>BankUml-Backend</artifactId>
     <version>1.0</version>
-    
+
+    <properties>
+        <maven.compiler.source>20</maven.compiler.source>
+        <maven.compiler.target>20</maven.compiler.target>
+    </properties>
+
     <dependencies>
         <dependency>
             <groupId>org.projectlombok</groupId>
@@ -27,23 +32,10 @@
             <version>2.0.12</version>
         </dependency>
         <dependency>
-            <groupId>org.slf4j</groupId>
-            <artifactId>slf4j-api</artifactId>
-            <version>2.0.12</version>
-        </dependency>
-        <dependency>
-            <groupId>org.junit.jupiter</groupId>
-            <artifactId>junit-jupiter</artifactId>
-            <version>5.10.3</version>
-            <scope>test</scope>
-        </dependency>
-        <!-- Javalin web framework -->
-        <dependency>
             <groupId>io.javalin</groupId>
             <artifactId>javalin</artifactId>
             <version>6.1.3</version>
         </dependency>
-        <!-- JWT for authentication -->
         <dependency>
             <groupId>io.jsonwebtoken</groupId>
             <artifactId>jjwt-api</artifactId>
@@ -61,54 +53,41 @@
             <version>0.12.5</version>
             <scope>runtime</scope>
         </dependency>
-        <!-- Gson for JSON serialization -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
             <artifactId>gson</artifactId>
             <version>2.10.1</version>
         </dependency>
     </dependencies>
-    
-    <properties>
-        <!-- Set Java version for compilation -->
-        <maven.compiler.release>21</maven.compiler.release>
-        <maven.compiler.source>21</maven.compiler.source>
-        <maven.compiler.target>21</maven.compiler.target>
-    </properties>
 
     <build>
         <plugins>
             <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <version>3.11.0</version>
-                <configuration>
-                    <!-- Use the release flag where possible to ensure consistent compilation -->
-                    <release>${maven.compiler.release}</release>
-                </configuration>
-            </plugin>
-
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-enforcer-plugin</artifactId>
-                <version>3.2.1</version>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>build-helper-maven-plugin</artifactId>
+                <version>3.3.0</version>
                 <executions>
                     <execution>
-                        <id>enforce-java</id>
+                        <phase>generate-sources</phase>
                         <goals>
-                            <goal>enforce</goal>
+                            <goal>add-source</goal>
                         </goals>
                         <configuration>
-                            <rules>
-                                <requireJavaVersion>
-                                    <!-- require Java 21 or newer -->
-                                    <version>[21,)</version>
-                                </requireJavaVersion>
-                            </rules>
-                            <fail>true</fail>
+                            <sources>
+                                <source>../src/main/java</source>
+                            </sources>
                         </configuration>
                     </execution>
                 </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.codehaus.mojo</groupId>
+                <artifactId>exec-maven-plugin</artifactId>
+                <version>3.1.0</version>
+                <configuration>
+                    <mainClass>server.ApiServer</mainClass>
+                    <workingDirectory>..</workingDirectory>
+                </configuration>
             </plugin>
         </plugins>
     </build>

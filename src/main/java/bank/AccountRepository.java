@@ -171,6 +171,64 @@ public class AccountRepository {
     }
 
     /**
+     * Gets a single account by its database ID.
+     */
+    public Account getAccountById(long accountId) {
+        String sql = "SELECT a.account_type, a.account_number, u.first_name, u.last_name, u.username, u.password " +
+                "FROM accounts a " +
+                "JOIN users u ON u.id = a.customer_id " +
+                "WHERE a.id = ?";
+
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, accountId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    Customer owner = new Customer(
+                            resultSet.getString("first_name"),
+                            resultSet.getString("last_name"),
+                            resultSet.getString("username"),
+                            resultSet.getString("password")
+                    );
+                    return createAccountInstance(resultSet.getString("account_type"), owner);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to get account by ID", e);
+        }
+        throw new IllegalStateException("Account with ID " + accountId + " does not exist.");
+    }
+
+    /**
+     * Gets a single account by its account number.
+     */
+    public Account getAccountByNumber(String accountNumber) {
+        String sql = "SELECT a.account_type, a.account_number, u.first_name, u.last_name, u.username, u.password " +
+                "FROM accounts a " +
+                "JOIN users u ON u.id = a.customer_id " +
+                "WHERE a.account_number = ?";
+
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, accountNumber);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    Customer owner = new Customer(
+                            resultSet.getString("first_name"),
+                            resultSet.getString("last_name"),
+                            resultSet.getString("username"),
+                            resultSet.getString("password")
+                    );
+                    return createAccountInstance(resultSet.getString("account_type"), owner);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to get account by number", e);
+        }
+        throw new IllegalStateException("Account with number " + accountNumber + " does not exist.");
+    }
+
+    /**
      * Searches accounts by optional account number, account type, and customer username.
      * If all filters are null/blank, returns all accounts.
      */

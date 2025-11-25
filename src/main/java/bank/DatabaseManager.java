@@ -12,8 +12,16 @@ import java.sql.Statement;
  * Coordinates the SQLite database lifecycle and makes sure the schema exists.
  */
 public class DatabaseManager {
-    private static final String DB_FILE = "bank.db";
+    private static final String DB_FILE = getDatabasePath();
     private static final String JDBC_URL = "jdbc:sqlite:" + DB_FILE;
+
+    private static String getDatabasePath() {
+        String currentDir = System.getProperty("user.dir");
+        if (currentDir.endsWith("backend")) {
+            return "../bank.db";
+        }
+        return "bank.db";
+    }
 
     static {
         try {
@@ -47,6 +55,17 @@ public class DatabaseManager {
                     + "UNIQUE(customer_id, account_type)"
                     + ");";
 
+    private static final String CREATE_TRANSACTIONS_TABLE =
+            "CREATE TABLE IF NOT EXISTS transactions ("
+                    + "id INTEGER PRIMARY KEY AUTOINCREMENT,"
+                    + "account_id INTEGER NOT NULL,"
+                    + "amount REAL NOT NULL,"
+                    + "type TEXT NOT NULL,"
+                    + "description TEXT,"
+                    + "created_at TEXT DEFAULT CURRENT_TIMESTAMP,"
+                    + "FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE"
+                    + ");";
+
     public void initialize() {
         // Create the physical db file if it does not already exist, then bootstrap tables + PRAGMAs.
         ensureDatabaseFileExists();
@@ -55,6 +74,7 @@ public class DatabaseManager {
             statement.executeUpdate("PRAGMA foreign_keys = ON");
             statement.executeUpdate(CREATE_USERS_TABLE);
             statement.executeUpdate(CREATE_ACCOUNTS_TABLE);
+            statement.executeUpdate(CREATE_TRANSACTIONS_TABLE);
         } catch (SQLException e) {
             throw new RuntimeException("Failed to initialize database schema", e);
         }

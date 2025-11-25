@@ -18,3 +18,13 @@ CREATE TABLE IF NOT EXISTS accounts (
     FOREIGN KEY (customer_id) REFERENCES users(id) ON DELETE CASCADE,
     UNIQUE(customer_id, account_type)
 );
+
+CREATE TABLE IF NOT EXISTS transactions (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    account_id INTEGER NOT NULL,
+    amount REAL NOT NULL,
+    type TEXT NOT NULL,
+    description TEXT,
+    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (account_id) REFERENCES accounts(id) ON DELETE CASCADE
+);
