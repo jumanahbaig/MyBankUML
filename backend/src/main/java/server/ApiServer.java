@@ -87,6 +87,10 @@ public class ApiServer {
         app.get("/api/users/search", ApiServer::searchUsers);
         app.put("/api/users/{userId}/role", ApiServer::updateUserRole);
         app.put("/api/users/{userId}/status", ApiServer::toggleUserStatus);
+        app.get("/api/admin/users", ApiServer::getAllUsers);
+        app.get("/api/admin/users/search", ApiServer::searchUsers);
+        app.put("/api/admin/users/{userId}/role", ApiServer::updateUserRole);
+        app.put("/api/admin/users/{userId}/status", ApiServer::toggleUserStatus);
 
         System.out.println("API Server started on port 8080");
     }
@@ -315,18 +319,103 @@ public class ApiServer {
 
     private static void updateUserRole(Context ctx) {
         try {
-            ctx.status(HttpStatus.OK).result("Role updated");
-        } catch (Exception e) {
+            String authHeader = ctx.header("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                ctx.status(HttpStatus.UNAUTHORIZED)
+                        .json(new ErrorResponse("UNAUTHORIZED", "Missing token"));
+                return;
+            }
+
+            String token = authHeader.substring(7);
+            String role = JwtUtil.getRoleFromToken(token);
+            if (!"ADMIN".equalsIgnoreCase(role)) {
+                ctx.status(HttpStatus.FORBIDDEN)
+                        .json(new ErrorResponse("FORBIDDEN", "Admin access required"));
+                return;
+            }
+
+            long userId = Long.parseLong(ctx.pathParam("userId"));
+            RoleUpdateRequest request = ctx.bodyAsClass(RoleUpdateRequest.class);
+            if (request == null || request.role == null || request.role.isBlank()) {
+                ctx.status(HttpStatus.BAD_REQUEST)
+                        .json(new ErrorResponse("BAD_REQUEST", "Role is required"));
+                return;
+            }
+
+            String normalizedRole = request.role.trim().toUpperCase();
+            if (!normalizedRole.equals("ADMIN") && !normalizedRole.equals("TELLER") && !normalizedRole.equals("CUSTOMER")) {
+                ctx.status(HttpStatus.BAD_REQUEST)
+                        .json(new ErrorResponse("BAD_REQUEST", "Invalid role"));
+                return;
+            }
+
+            boolean updated = userRepository.updateUserRole(userId, normalizedRole);
+            if (!updated) {
+                ctx.status(HttpStatus.NOT_FOUND)
+                        .json(new ErrorResponse("NOT_FOUND", "User not found"));
+                return;
+            }
+
+            UserDTO dto = fetchUserById(userId);
+            if (dto == null) {
+                ctx.status(HttpStatus.NOT_FOUND)
+                        .json(new ErrorResponse("NOT_FOUND", "User not found"));
+                return;
+            }
+            ctx.status(HttpStatus.OK).json(dto);
+        } catch (NumberFormatException e) {
             ctx.status(HttpStatus.BAD_REQUEST)
+                    .json(new ErrorResponse("BAD_REQUEST", "Invalid user id"));
+        } catch (Exception e) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .json(new ErrorResponse("ERROR", e.getMessage()));
         }
     }
 
     private static void toggleUserStatus(Context ctx) {
         try {
-            ctx.status(HttpStatus.OK).result("Status toggled");
-        } catch (Exception e) {
+            String authHeader = ctx.header("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                ctx.status(HttpStatus.UNAUTHORIZED)
+                        .json(new ErrorResponse("UNAUTHORIZED", "Missing token"));
+                return;
+            }
+
+            String token = authHeader.substring(7);
+            String role = JwtUtil.getRoleFromToken(token);
+            if (!"ADMIN".equalsIgnoreCase(role)) {
+                ctx.status(HttpStatus.FORBIDDEN)
+                        .json(new ErrorResponse("FORBIDDEN", "Admin access required"));
+                return;
+            }
+
+            long userId = Long.parseLong(ctx.pathParam("userId"));
+            StatusUpdateRequest request = ctx.bodyAsClass(StatusUpdateRequest.class);
+            if (request == null) {
+                ctx.status(HttpStatus.BAD_REQUEST)
+                        .json(new ErrorResponse("BAD_REQUEST", "Status body is required"));
+                return;
+            }
+
+            boolean updated = userRepository.updateUserStatus(userId, request.active);
+            if (!updated) {
+                ctx.status(HttpStatus.NOT_FOUND)
+                        .json(new ErrorResponse("NOT_FOUND", "User not found"));
+                return;
+            }
+
+            UserDTO dto = fetchUserById(userId);
+            if (dto == null) {
+                ctx.status(HttpStatus.NOT_FOUND)
+                        .json(new ErrorResponse("NOT_FOUND", "User not found"));
+                return;
+            }
+            ctx.status(HttpStatus.OK).json(dto);
+        } catch (NumberFormatException e) {
             ctx.status(HttpStatus.BAD_REQUEST)
+                    .json(new ErrorResponse("BAD_REQUEST", "Invalid user id"));
+        } catch (Exception e) {
+            ctx.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .json(new ErrorResponse("ERROR", e.getMessage()));
         }
     }
@@ -337,6 +426,14 @@ public class ApiServer {
         public int totalAccounts;
         public int currentPage;
         public int totalPages;
+    }
+
+    private static class RoleUpdateRequest {
+        public String role;
+    }
+
+    private static class StatusUpdateRequest {
+        public boolean active;
     }
 
     // Helper methods
@@ -506,24 +603,51 @@ public class ApiServer {
 
     private static List<UserDTO> fetchAllUsers() {
         List<UserDTO> users = new ArrayList<>();
-        String sql = "SELECT id, username, first_name, last_name, role, created_at FROM users";
+        String sql = "SELECT id, username, first_name, last_name, role, active, created_at FROM users";
         try (Connection connection = dbManager.getConnection();
              PreparedStatement statement = connection.prepareStatement(sql);
              ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
-                users.add(new UserDTO(
+                UserDTO dto = new UserDTO(
                         resultSet.getLong("id"),
                         resultSet.getString("username"),
                         resultSet.getString("first_name"),
                         resultSet.getString("last_name"),
                         resultSet.getString("role").toLowerCase(),
                         resultSet.getString("created_at")
-                ));
+                );
+                dto.setActive(resultSet.getInt("active") == 1);
+                users.add(dto);
             }
         } catch (SQLException e) {
             throw new RuntimeException("Unable to get users", e);
         }
         return users;
+    }
+
+    private static UserDTO fetchUserById(long userId) {
+        String sql = "SELECT id, username, first_name, last_name, role, active, created_at FROM users WHERE id = ?";
+        try (Connection connection = dbManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    UserDTO dto = new UserDTO(
+                            resultSet.getLong("id"),
+                            resultSet.getString("username"),
+                            resultSet.getString("first_name"),
+                            resultSet.getString("last_name"),
+                            resultSet.getString("role").toLowerCase(),
+                            resultSet.getString("created_at")
+                    );
+                    dto.setActive(resultSet.getInt("active") == 1);
+                    return dto;
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to get user", e);
+        }
+        return null;
     }
 
     private static String mapFrontendTypeToBackend(String frontendType) {

@@ -114,6 +114,72 @@ public class UserRepository {
         return results;
     }
 
+    public User findById(long userId) {
+        String sql = "SELECT first_name, last_name, username, password, role FROM users WHERE id = ?";
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (resultSet.next()) {
+                    return mapRowToUser(resultSet);
+                }
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to find user with id " + userId, e);
+        }
+        return null;
+    }
+
+    public boolean updateUserRole(long userId, String role) {
+        User existing = findById(userId);
+        String sql = "UPDATE users SET role = ? WHERE id = ?";
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, role);
+            statement.setLong(2, userId);
+            int rows = statement.executeUpdate();
+            if (rows > 0 && existing != null) {
+                userList.removeIf(user -> user.getUserName().equals(existing.getUserName()));
+            }
+            return rows > 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to update role for user " + userId, e);
+        }
+    }
+
+    public boolean updateUserStatus(long userId, boolean active) {
+        User existing = findById(userId);
+        String sql = "UPDATE users SET active = ? WHERE id = ?";
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setInt(1, active ? 1 : 0);
+            statement.setLong(2, userId);
+            int rows = statement.executeUpdate();
+            if (rows > 0 && existing != null) {
+                userList.removeIf(user -> user.getUserName().equals(existing.getUserName()));
+            }
+            return rows > 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to update status for user " + userId, e);
+        }
+    }
+
+    public boolean updateUserRole(int userId, String newRole) {
+        try {
+            return updateUserRole((long) userId, newRole);
+        } catch (RuntimeException e) {
+            throw e;
+        }
+    }
+
+    public boolean updateUserStatus(int userId, boolean active) {
+        try {
+            return updateUserStatus((long) userId, active);
+        } catch (RuntimeException e) {
+            throw e;
+        }
+    }
+
     /**
      * Convenience overload used in many SRS scenarios where only username matters,
      * e.g., login or checking if a user already exists before creation.
