@@ -1,16 +1,20 @@
 package bank;
 
+import java.time.LocalDateTime;
+
 public class Transaction {
     private final String id;
     private final double amount;
     private final String type;        // e.g., "credit" or "debit"
     private final String description; // e.g., "Card payment"
+    private final LocalDateTime timestamp;
 
     public Transaction(String id, double amount, String type, String description) {
         this.id = id;
         this.amount = amount;
         this.type = type;
         this.description = description;
+        this.timestamp = LocalDateTime.now();
     }
 
     public String getId() {
@@ -27,6 +31,10 @@ public class Transaction {
 
     public String getDescription() {
         return description;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
     }
 
     public String getTransactionDetails() {
