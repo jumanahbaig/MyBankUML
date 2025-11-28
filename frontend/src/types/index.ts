@@ -17,6 +17,7 @@ export interface User {
   isActive: boolean;
   createdAt: string;
   forcePasswordChange?: boolean;
+  isLocked?: boolean;
 }
 
 export interface Account {

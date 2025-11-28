@@ -102,6 +102,7 @@ public class ApiServer {
         app.get("/api/users/search", ApiServer::searchUsers);
         app.put("/api/users/{userId}/role", ApiServer::updateUserRole);
         app.put("/api/users/{userId}/status", ApiServer::toggleUserStatus);
+        app.post("/api/users/{userId}/unlock", ApiServer::unlockUser);
         app.post("/api/users", ApiServer::createUser);
 
         // Password reset endpoints
@@ -118,12 +119,28 @@ public class ApiServer {
             LoginRequest request = ctx.bodyAsClass(LoginRequest.class);
             System.out.println("Login attempt for username: " + request.getUsername());
 
+            long userId;
+            try {
+                userId = getUserId(request.getUsername());
+            } catch (Exception e) {
+                // User not found
+                ctx.status(HttpStatus.UNAUTHORIZED)
+                        .json(new ErrorResponse("UNAUTHORIZED", "Invalid credentials"));
+                return;
+            }
+
+            if (securityService.isLocked(userId)) {
+                ctx.status(HttpStatus.UNAUTHORIZED)
+                        .json(new ErrorResponse("LOCKED",
+                                "Account is locked due to too many failed attempts. Please try again in 24 hours or contact admin."));
+                return;
+            }
+
             boolean loginSuccess = customerService.loginUser(request.getUsername(), request.getPassword(), null);
             System.out.println("Login success: " + loginSuccess);
 
             if (loginSuccess) {
-                long userId = getUserId(request.getUsername());
-                System.out.println("User ID: " + userId);
+                securityService.resetFailedAttempts(userId);
 
                 String role = getRoleForUser(request.getUsername());
                 System.out.println("User role: " + role);
@@ -133,13 +150,26 @@ public class ApiServer {
 
                 String token = JwtUtil.generateToken(user.getUserName(), role.toUpperCase(), userId);
                 boolean forcePasswordChange = securityService.isPasswordChangeRequired(userId);
+
                 UserDTO userDTO = new UserDTO(userId, user.getUserName(), user.getFirstName(),
                         user.getLastName(), role.toLowerCase(),
-                        getCurrentTimestamp(userId), forcePasswordChange);
+                        getCurrentTimestamp(userId), forcePasswordChange, false);
                 ctx.json(new LoginResponse(token, userDTO));
             } else {
-                ctx.status(HttpStatus.UNAUTHORIZED)
-                        .json(new ErrorResponse("UNAUTHORIZED", "Invalid credentials"));
+                securityService.recordFailedAttempt(userId);
+                int attempts = securityService.getFailedAttempts(userId);
+
+                if (attempts >= 5) {
+                    ctx.status(HttpStatus.UNAUTHORIZED)
+                            .json(new ErrorResponse("LOCKED", "Account is locked due to too many failed attempts."));
+                } else if (attempts == 4) {
+                    ctx.status(HttpStatus.UNAUTHORIZED)
+                            .json(new ErrorResponse("WARNING",
+                                    "Invalid credentials. Warning: 1 attempt remaining before account lock."));
+                } else {
+                    ctx.status(HttpStatus.UNAUTHORIZED)
+                            .json(new ErrorResponse("UNAUTHORIZED", "Invalid credentials"));
+                }
             }
         } catch (Exception e) {
             System.err.println("Login error: " + e.getMessage());
@@ -622,6 +652,8 @@ public class ApiServer {
             // Return the updated user
             User user = getUserByUsername(username);
             String timestamp = getCurrentTimestamp(userId);
+            boolean force = securityService.isPasswordChangeRequired(userId);
+            boolean locked = securityService.isLocked(userId);
 
             UserDTO userDTO = new UserDTO(
                     userId,
@@ -629,9 +661,34 @@ public class ApiServer {
                     user.getFirstName(),
                     user.getLastName(),
                     user.getClass().getSimpleName().toLowerCase(),
-                    timestamp);
+                    timestamp,
+                    force,
+                    locked);
 
             ctx.status(HttpStatus.OK).json(userDTO);
+        } catch (Exception e) {
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .json(new ErrorResponse("ERROR", e.getMessage()));
+        }
+    }
+
+    private static void unlockUser(Context ctx) {
+        try {
+            String authHeader = ctx.header("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                ctx.status(HttpStatus.UNAUTHORIZED).json(new ErrorResponse("UNAUTHORIZED", "Missing token"));
+                return;
+            }
+            String token = authHeader.substring(7);
+            String role = JwtUtil.getRoleFromToken(token);
+            if (!"admin".equalsIgnoreCase(role)) {
+                ctx.status(HttpStatus.FORBIDDEN).json(new ErrorResponse("FORBIDDEN", "Only admins can unlock users"));
+                return;
+            }
+
+            long userId = Long.parseLong(ctx.pathParam("userId"));
+            securityService.unlockUser(userId);
+            ctx.status(HttpStatus.OK).json(Map.of("message", "User unlocked successfully"));
         } catch (Exception e) {
             ctx.status(HttpStatus.BAD_REQUEST)
                     .json(new ErrorResponse("ERROR", e.getMessage()));
@@ -672,18 +729,24 @@ public class ApiServer {
 
     private static List<UserDTO> fetchAllUsers() {
         List<UserDTO> users = new ArrayList<>();
-        String sql = "SELECT id, username, first_name, last_name, role, created_at FROM users";
+        String sql = "SELECT u.id, u.username, u.first_name, u.last_name, u.role, u.created_at FROM users u";
         try (Connection connection = dbManager.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql);
                 ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
+                long userId = resultSet.getLong("id");
+                boolean force = securityService.isPasswordChangeRequired(userId);
+                boolean locked = securityService.isLocked(userId);
+
                 users.add(new UserDTO(
-                        resultSet.getLong("id"),
+                        userId,
                         resultSet.getString("username"),
                         resultSet.getString("first_name"),
                         resultSet.getString("last_name"),
                         resultSet.getString("role").toLowerCase(),
-                        resultSet.getString("created_at")));
+                        resultSet.getString("created_at"),
+                        force,
+                        locked));
             }
         } catch (SQLException e) {
             throw new RuntimeException("Unable to get users", e);

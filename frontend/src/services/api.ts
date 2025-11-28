@@ -52,6 +52,7 @@ class ApiService {
         isActive: data.user.isActive,
         createdAt: data.user.createdAt,
         forcePasswordChange: data.user.forcePasswordChange,
+        isLocked: data.user.isLocked,
       },
       token: data.token,
     };
@@ -208,6 +209,7 @@ class ApiService {
       role: user.role,
       isActive: user.isActive,
       createdAt: user.createdAt,
+      isLocked: user.isLocked,
     }));
   }
 
@@ -231,6 +233,7 @@ class ApiService {
       role: user.role,
       isActive: user.isActive,
       createdAt: user.createdAt,
+      isLocked: user.isLocked,
     }));
   }
 
@@ -251,6 +254,7 @@ class ApiService {
       role: user.role,
       isActive: user.isActive,
       createdAt: user.createdAt,
+      isLocked: user.isLocked,
     };
   }
 
@@ -270,7 +274,17 @@ class ApiService {
       role: user.role,
       isActive: user.isActive,
       createdAt: user.createdAt,
+      isLocked: user.isLocked,
     };
+  }
+
+  async unlockUser(userId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/users/${userId}/unlock`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    await handleResponse(response);
   }
 
   async createUser(userData: {

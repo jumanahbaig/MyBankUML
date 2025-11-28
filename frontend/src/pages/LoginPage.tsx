@@ -76,9 +76,18 @@ export default function LoginPage() {
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'An error occurred';
 
+      let variant: "default" | "destructive" = "destructive";
+      let title = "Login failed";
+
+      if (errorMessage.toLowerCase().includes("locked")) {
+        title = "Account Locked";
+      } else if (errorMessage.includes("Warning")) {
+        title = "Warning";
+      }
+
       toast({
-        variant: 'destructive',
-        title: 'Login failed',
+        variant: variant,
+        title: title,
         description: errorMessage,
       });
     } finally {

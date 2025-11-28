@@ -9,9 +9,10 @@ public class UserDTO {
     private boolean isActive;
     private boolean forcePasswordChange;
     private String createdAt;
+    private boolean isLocked;
 
     public UserDTO(long id, String username, String firstName, String lastName, String role, String createdAt,
-            boolean forcePasswordChange) {
+            boolean forcePasswordChange, boolean isLocked) {
         this.id = id;
         this.username = username;
         this.firstName = firstName;
@@ -20,10 +21,16 @@ public class UserDTO {
         this.isActive = true;
         this.createdAt = createdAt;
         this.forcePasswordChange = forcePasswordChange;
+        this.isLocked = isLocked;
     }
 
     public UserDTO(long id, String username, String firstName, String lastName, String role, String createdAt) {
-        this(id, username, firstName, lastName, role, createdAt, false);
+        this(id, username, firstName, lastName, role, createdAt, false, false);
+    }
+
+    public UserDTO(long id, String username, String firstName, String lastName, String role, String createdAt,
+            boolean forcePasswordChange) {
+        this(id, username, firstName, lastName, role, createdAt, forcePasswordChange, false);
     }
 
     public long getId() {
@@ -88,5 +95,13 @@ public class UserDTO {
 
     public void setForcePasswordChange(boolean forcePasswordChange) {
         this.forcePasswordChange = forcePasswordChange;
+    }
+
+    public boolean isLocked() {
+        return isLocked;
+    }
+
+    public void setLocked(boolean locked) {
+        isLocked = locked;
     }
 }

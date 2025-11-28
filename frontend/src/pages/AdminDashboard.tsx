@@ -119,6 +119,25 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleUnlockUser = async (userId: string) => {
+    try {
+      await api.unlockUser(userId);
+
+      setUsers(users.map((u) => (u.id === userId ? { ...u, isLocked: false } : u)));
+
+      toast({
+        title: 'User Unlocked',
+        description: 'User account has been unlocked successfully',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to unlock user',
+      });
+    }
+  };
+
   const handleApprovePasswordReset = async (requestId: string) => {
     try {
       await api.approvePasswordResetRequest(requestId);
@@ -460,23 +479,36 @@ export default function AdminDashboard() {
                       </TableCell>
                       <TableCell>
                         <span
-                          className={`text-xs px-2 py-1 rounded-full ${user.isActive
-                            ? 'bg-green-100 text-green-800'
-                            : 'bg-red-100 text-red-800'
+                          className={`text-xs px-2 py-1 rounded-full ${user.isLocked
+                            ? 'bg-orange-100 text-orange-800'
+                            : user.isActive
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-red-100 text-red-800'
                             }`}
                         >
-                          {user.isActive ? 'Active' : 'Inactive'}
+                          {user.isLocked ? 'Locked' : user.isActive ? 'Active' : 'Inactive'}
                         </span>
                       </TableCell>
                       <TableCell>{formatDate(user.createdAt)}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleToggleUserStatus(user.id)}
-                        >
-                          {user.isActive ? 'Disable' : 'Enable'}
-                        </Button>
+                        {user.isLocked ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleUnlockUser(user.id)}
+                            className="text-orange-600 hover:text-orange-700 hover:bg-orange-50"
+                          >
+                            Unlock
+                          </Button>
+                        ) : (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleToggleUserStatus(user.id)}
+                          >
+                            {user.isActive ? 'Disable' : 'Enable'}
+                          </Button>
+                        )}
                       </TableCell>
                     </TableRow>
                   ))}
