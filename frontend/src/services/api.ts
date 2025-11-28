@@ -287,6 +287,15 @@ class ApiService {
     await handleResponse(response);
   }
 
+  async deleteUser(userId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/users/${userId}`, {
+      method: 'DELETE',
+      headers: getAuthHeaders(),
+    });
+
+    await handleResponse(response);
+  }
+
   async createUser(userData: {
     firstName: string;
     lastName: string;

@@ -138,6 +138,41 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleDeleteUser = async (userId: string, username: string) => {
+    const confirmed = window.confirm(
+      `⚠️ WARNING: Permanent Deletion\n\n` +
+      `You are about to permanently delete user "${username}" and ALL associated data.\n\n` +
+      `This will remove:\n` +
+      `• User account\n` +
+      `• All bank accounts\n` +
+      `• All transaction history\n` +
+      `• All associated data\n\n` +
+      `This action CANNOT be undone.\n\n` +
+      `Are you sure you want to continue?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    try {
+      await api.deleteUser(userId);
+
+      setUsers(users.filter((u) => u.id !== userId));
+
+      toast({
+        title: 'User Deleted',
+        description: 'User and all associated accounts have been permanently deleted',
+      });
+    } catch (error) {
+      toast({
+        variant: 'destructive',
+        title: 'Error',
+        description: 'Failed to delete user',
+      });
+    }
+  };
+
   const handleApprovePasswordReset = async (requestId: string) => {
     try {
       await api.approvePasswordResetRequest(requestId);
@@ -502,11 +537,11 @@ export default function AdminDashboard() {
                           </Button>
                         ) : (
                           <Button
-                            variant="outline"
+                            variant="destructive"
                             size="sm"
-                            onClick={() => handleToggleUserStatus(user.id)}
+                            onClick={() => handleDeleteUser(user.id, user.username)}
                           >
-                            {user.isActive ? 'Disable' : 'Enable'}
+                            Delete
                           </Button>
                         )}
                       </TableCell>

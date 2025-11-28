@@ -103,6 +103,7 @@ public class ApiServer {
         app.put("/api/users/{userId}/role", ApiServer::updateUserRole);
         app.put("/api/users/{userId}/status", ApiServer::toggleUserStatus);
         app.post("/api/users/{userId}/unlock", ApiServer::unlockUser);
+        app.delete("/api/users/{userId}", ApiServer::deleteUser);
         app.post("/api/users", ApiServer::createUser);
 
         // Password reset endpoints
@@ -689,6 +690,43 @@ public class ApiServer {
             long userId = Long.parseLong(ctx.pathParam("userId"));
             securityService.unlockUser(userId);
             ctx.status(HttpStatus.OK).json(Map.of("message", "User unlocked successfully"));
+        } catch (Exception e) {
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .json(new ErrorResponse("ERROR", e.getMessage()));
+        }
+    }
+
+    private static void deleteUser(Context ctx) {
+        try {
+            String authHeader = ctx.header("Authorization");
+            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+                ctx.status(HttpStatus.UNAUTHORIZED).json(new ErrorResponse("UNAUTHORIZED", "Missing token"));
+                return;
+            }
+            String token = authHeader.substring(7);
+            String role = JwtUtil.getRoleFromToken(token);
+            if (!"admin".equalsIgnoreCase(role)) {
+                ctx.status(HttpStatus.FORBIDDEN).json(new ErrorResponse("FORBIDDEN", "Only admins can delete users"));
+                return;
+            }
+
+            long userId = Long.parseLong(ctx.pathParam("userId"));
+
+            // Delete user - CASCADE will automatically delete associated accounts
+            String sql = "DELETE FROM users WHERE id = ?";
+            try (Connection connection = dbManager.getConnection();
+                    PreparedStatement statement = connection.prepareStatement(sql)) {
+                statement.setLong(1, userId);
+                int rowsAffected = statement.executeUpdate();
+
+                if (rowsAffected == 0) {
+                    ctx.status(HttpStatus.NOT_FOUND)
+                            .json(new ErrorResponse("NOT_FOUND", "User not found"));
+                    return;
+                }
+
+                ctx.status(HttpStatus.OK).json(Map.of("message", "User and associated accounts deleted successfully"));
+            }
         } catch (Exception e) {
             ctx.status(HttpStatus.BAD_REQUEST)
                     .json(new ErrorResponse("ERROR", e.getMessage()));
