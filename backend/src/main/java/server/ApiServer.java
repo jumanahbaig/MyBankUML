@@ -262,6 +262,12 @@ public class ApiServer {
             CreateTransactionRequest request = ctx.bodyAsClass(CreateTransactionRequest.class);
 
             String transactionType = mapFrontendTypeToBackend(request.getType());
+
+            AccountDTO account = fetchAccountById(accountId);
+            if ("debit".equalsIgnoreCase(transactionType) && account.getBalance() < request.getAmount()) {
+                throw new IllegalStateException("Insufficient funds for this transaction.");
+            }
+
             Transaction transaction = new Transaction(
                     generateTransactionId(),
                     request.getAmount(),
@@ -281,6 +287,9 @@ public class ApiServer {
             );
 
             ctx.status(HttpStatus.CREATED).json(dto);
+        } catch (IllegalStateException e) {
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .json(new ErrorResponse("ERROR", e.getMessage()));
         } catch (Exception e) {
             ctx.status(HttpStatus.BAD_REQUEST)
                     .json(new ErrorResponse("ERROR", e.getMessage()));

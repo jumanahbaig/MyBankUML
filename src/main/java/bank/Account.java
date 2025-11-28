@@ -32,12 +32,19 @@ public abstract class Account {
 
     //method to add transaction to account
     public void addTransaction(Transaction transaction) {
-        transactions.add(transaction);
-        if ("credit".equalsIgnoreCase(transaction.getType())) {
-            balance += transaction.getAmount();
-        } else if ("debit".equalsIgnoreCase(transaction.getType())) {
+        // For withdrawals / transfers out
+        if ("debit".equalsIgnoreCase(transaction.getType())) {
+            if (balance < transaction.getAmount()) {
+                throw new IllegalStateException("Insufficient funds for this transaction.");
+            }
             balance -= transaction.getAmount();
         }
+        // For deposits / money coming in
+        else if ("credit".equalsIgnoreCase(transaction.getType())) {
+            balance += transaction.getAmount();
+        }
+
+        transactions.add(transaction);
     }
 
     //method to pay for a transaction by index
@@ -46,11 +53,8 @@ public abstract class Account {
             throw new IndexOutOfBoundsException("Transaction index out of range.");
         }
         Transaction transaction = transactions.get(transactionIndex);
-        if ("debit".equals(transaction.getType()) && getBalance() < transaction.getAmount()) {
-            throw new IllegalStateException("Insufficient funds for this payment.");
-        }
-        // For credit transactions, no additional action needed; for debit we ensure funds are sufficient.
-        balance = getBalance();
+        // At this point the balance has already been checked and updated in addTransaction
+        transaction.pay();
     }
 
     //method to get receipt for a transaction by index
