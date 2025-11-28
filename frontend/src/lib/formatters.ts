@@ -31,6 +31,7 @@ export function getAccountTypeLabel(type: AccountType): string {
   const labels: Record<AccountType, string> = {
     checking: 'Checking',
     savings: 'Savings',
+    credit: 'Credit Card',
     money_market: 'Money Market',
     cd: 'Certificate of Deposit',
   };

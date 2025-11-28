@@ -1,13 +1,13 @@
 package server.dto;
 
 public class TransactionDTO {
-    private long id;
+    private String id;
     private double amount;
     private String type;
     private String description;
     private String createdAt;
 
-    public TransactionDTO(long id, double amount, String type, String description, String createdAt) {
+    public TransactionDTO(String id, double amount, String type, String description, String createdAt) {
         this.id = id;
         this.amount = amount;
         this.type = type;
@@ -15,11 +15,11 @@ public class TransactionDTO {
         this.createdAt = createdAt;
     }
 
-    public long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

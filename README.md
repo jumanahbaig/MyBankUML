@@ -56,3 +56,35 @@ mvn dependency:copy-dependencies -DoutputDirectory=./libs
 Originally developed by [@shayanaminaei](https://github.com/shayanaminaei)
 
 Cloned from [M-PERSIC/BankUml](https://github.com/M-PERSIC/BankUml)
+
+## Quick Start
+
+**Prerequisites:**
+- Java 21 or newer
+- Maven
+- Node.js (with npm)
+
+1. Install dependencies:
+
+```bash
+cd frontend
+npm install
+```
+
+2. Run the application:
+
+**Windows:**
+```bash
+compile_run.bat
+```
+
+**Mac/Linux:**
+```bash
+# Terminal 1 - Start frontend
+cd frontend && npm run dev
+
+# Terminal 2 - Start backend (in a new terminal)
+cd backend && mvn clean compile exec:java
+```
+
+This will start both the frontend and backend servers.

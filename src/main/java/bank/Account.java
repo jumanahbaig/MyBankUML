@@ -7,15 +7,17 @@ import java.util.List;
 
 @Getter
 public abstract class Account {
-    //customer who owns the account, also use for retreval within bank system
+    // customer who owns the account, also use for retreval within bank system
     protected Customer customer;
-    //list of transactions for the account
+    // list of transactions for the account
     protected List<Transaction> transactions;
-    //cached balance
+    // cached balance
     protected double balance;
-    //amount owed for pending withdrawals
+    // amount owed for pending withdrawals
+    // amount owed for pending withdrawals
     protected double owedAmount;
-    
+    // account number
+    protected String accountNumber;
 
     public Account(Customer customer) {
         this.customer = customer;
@@ -23,14 +25,18 @@ public abstract class Account {
         this.balance = 0.0;
     }
 
-    //method to add transaction to account via primitive params
+    public void setAccountNumber(String accountNumber) {
+        this.accountNumber = accountNumber;
+    }
+
+    // method to add transaction to account via primitive params
     public void addTransaction(double amount, boolean deposit, String description) {
-        String id = String.valueOf(transactions.size() + 1); //simple incremental id
+        String id = String.valueOf(transactions.size() + 1); // simple incremental id
         String type = deposit ? "credit" : "debit";
         addTransaction(new Transaction(id, amount, type, description));
     }
 
-    //method to add transaction to account
+    // method to add transaction to account
     public void addTransaction(Transaction transaction) {
         transactions.add(transaction);
         if ("credit".equalsIgnoreCase(transaction.getType())) {
@@ -40,7 +46,7 @@ public abstract class Account {
         }
     }
 
-    //method to pay for a transaction by index
+    // method to pay for a transaction by index
     public void pay(int transactionIndex) {
         if (transactionIndex < 0 || transactionIndex >= transactions.size()) {
             throw new IndexOutOfBoundsException("Transaction index out of range.");
@@ -49,11 +55,12 @@ public abstract class Account {
         if ("debit".equals(transaction.getType()) && getBalance() < transaction.getAmount()) {
             throw new IllegalStateException("Insufficient funds for this payment.");
         }
-        // For credit transactions, no additional action needed; for debit we ensure funds are sufficient.
+        // For credit transactions, no additional action needed; for debit we ensure
+        // funds are sufficient.
         balance = getBalance();
     }
 
-    //method to get receipt for a transaction by index
+    // method to get receipt for a transaction by index
     public void receipt(int transactionIndex) {
         if (transactionIndex < 0 || transactionIndex >= transactions.size()) {
             throw new IndexOutOfBoundsException("Transaction index out of range.");

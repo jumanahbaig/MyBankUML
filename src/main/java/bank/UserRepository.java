@@ -10,7 +10,8 @@ import java.util.List;
 public class UserRepository {
     // Handles opening connections and making sure the SQLite schema exists.
     private final DatabaseManager databaseManager;
-    // Lightweight cache so callers can inspect the last loaded/added users without hitting the DB.
+    // Lightweight cache so callers can inspect the last loaded/added users without
+    // hitting the DB.
     private final List<User> userList;
 
     public UserRepository(DatabaseManager databaseManager) {
@@ -21,7 +22,8 @@ public class UserRepository {
 
     public void addUsers(User user) {
         System.out.println("Adding user: " + user.getUserName());
-        // UPSERT keeps the table in sync even if the same username is inserted twice (updates instead).
+        // UPSERT keeps the table in sync even if the same username is inserted twice
+        // (updates instead).
         String sql = "INSERT INTO users (first_name, last_name, username, password, role) "
                 + "VALUES (?, ?, ?, ?, ?) "
                 + "ON CONFLICT(username) DO UPDATE SET "
@@ -29,9 +31,10 @@ public class UserRepository {
                 + "last_name = excluded.last_name, "
                 + "password = excluded.password, "
                 + "role = excluded.role;";
-        // TODO: guard against concurrent modifications by synchronizing on the repository or using DB transactions.
+        // TODO: guard against concurrent modifications by synchronizing on the
+        // repository or using DB transactions.
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, user.getFirstName());
             statement.setString(2, user.getLastName());
             statement.setString(3, user.getUserName());
@@ -52,9 +55,10 @@ public class UserRepository {
             return;
         }
         String sql = "DELETE FROM users WHERE username = ?";
-        // TODO: ensure concurrent deletes don't race by using database-level locks or transactions.
+        // TODO: ensure concurrent deletes don't race by using database-level locks or
+        // transactions.
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, user.getUserName());
             statement.executeUpdate();
             userList.removeIf(existing -> existing.getUserName().equals(user.getUserName()));
@@ -66,23 +70,25 @@ public class UserRepository {
     /**
      * Searches for users based on the given criteria.
      *
-     * @param usernameFragment username to look for (exact match). If null/blank, no username filter is applied.
-     * @param roleFilter role to restrict results to ("CUSTOMER", "TELLER", "ADMIN"), case-insensitive.
-     *                   If null/blank, all roles are allowed.
+     * @param usernameFragment username to look for (exact match). If null/blank, no
+     *                         username filter is applied.
+     * @param roleFilter       role to restrict results to ("CUSTOMER", "TELLER",
+     *                         "ADMIN"), case-insensitive.
+     *                         If null/blank, all roles are allowed.
      * @return list of matching users (possibly empty)
      */
     public List<User> search(String usernameFragment, String roleFilter) {
         System.out.println("Searching users. username=" + usernameFragment + ", role=" + roleFilter);
 
         StringBuilder sql = new StringBuilder(
-                "SELECT first_name, last_name, username, password, role FROM users WHERE 1=1"
-        );
+                "SELECT first_name, last_name, username, password, role FROM users WHERE 1=1");
 
         boolean hasUsername = usernameFragment != null && !usernameFragment.isBlank();
         boolean hasRole = roleFilter != null && !roleFilter.isBlank();
 
         if (hasUsername) {
-            // For SRS use cases like login and create user, we want exact username matching.
+            // For SRS use cases like login and create user, we want exact username
+            // matching.
             sql.append(" AND username = ?");
         }
         if (hasRole) {
@@ -92,7 +98,7 @@ public class UserRepository {
         List<User> results = new ArrayList<>();
 
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+                PreparedStatement statement = connection.prepareStatement(sql.toString())) {
 
             int paramIndex = 1;
             if (hasUsername) {
@@ -140,7 +146,8 @@ public class UserRepository {
 
     /**
      * SRS: used by admins to search any user type (CUSTOMER, TELLER, ADMIN)
-     * based on username and optional role filter. If roleFilter is null, all roles are allowed.
+     * based on username and optional role filter. If roleFilter is null, all roles
+     * are allowed.
      */
     public List<User> searchForAdmin(String usernameFragment, String roleFilter) {
         return search(usernameFragment, roleFilter);
@@ -160,8 +167,8 @@ public class UserRepository {
         userList.clear();
         String sql = "SELECT first_name, last_name, username, password, role FROM users";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
+                PreparedStatement statement = connection.prepareStatement(sql);
+                ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
                 userList.add(mapRowToUser(resultSet));
             }
@@ -178,8 +185,8 @@ public class UserRepository {
         String sql = "SELECT first_name, last_name, username, password, role FROM users";
         boolean found = false;
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
+                PreparedStatement statement = connection.prepareStatement(sql);
+                ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
                 User user = mapRowToUser(resultSet);
                 found = true;
@@ -199,7 +206,7 @@ public class UserRepository {
     public void updatePassword(User user) {
         String sql = "UPDATE users SET password = ? WHERE username = ?";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, user.getPassword());
             statement.setString(2, user.getUserName());
             statement.executeUpdate();
@@ -211,11 +218,23 @@ public class UserRepository {
         }
     }
 
+    public void updateRole(long userId, String newRole) {
+        String sql = "UPDATE users SET role = ? WHERE id = ?";
+        try (Connection connection = databaseManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, newRole.toUpperCase());
+            statement.setLong(2, userId);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to update role for user ID: " + userId, e);
+        }
+    }
+
     public void updatePassword(String username, String newPassword) {
         String sql = "UPDATE users SET password = ? WHERE username = ?";
 
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, newPassword);
             statement.setString(2, username);
@@ -232,7 +251,7 @@ public class UserRepository {
         }
         String sql = "SELECT COUNT(*) AS total FROM users WHERE role = ?";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, role);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -248,7 +267,7 @@ public class UserRepository {
     public String findRoleByUsername(String username) {
         String sql = "SELECT role FROM users WHERE username = ?";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, username);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -267,7 +286,8 @@ public class UserRepository {
         String username = resultSet.getString("username");
         String password = resultSet.getString("password");
         String role = resultSet.getString("role");
-        // Role column tells us which concrete subclass to materialize when loading from the DB.
+        // Role column tells us which concrete subclass to materialize when loading from
+        // the DB.
         switch (role.toUpperCase()) {
             case "ADMIN":
                 return new Admin(firstName, lastName, username, password, null, this);

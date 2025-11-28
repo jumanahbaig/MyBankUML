@@ -1,4 +1,4 @@
-import { User, Account, Transaction, PasswordResetRequest } from '@/types';
+import { User, Account, Transaction, PasswordResetRequest, AccountRequest, AccountDeletionRequest } from '@/types';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -26,7 +26,7 @@ const mapAccountType = (backendType: string): Account['accountType'] => {
   const typeMap: Record<string, Account['accountType']> = {
     'check': 'checking',
     'saving': 'savings',
-    'card': 'checking',
+    'card': 'credit',
   };
   return typeMap[backendType.toLowerCase()] || 'checking';
 };
@@ -51,6 +51,7 @@ class ApiService {
         role: data.user.role,
         isActive: data.user.isActive,
         createdAt: data.user.createdAt,
+        forcePasswordChange: data.user.forcePasswordChange,
       },
       token: data.token,
     };
@@ -210,6 +211,29 @@ class ApiService {
     }));
   }
 
+  async searchUsers(query: string): Promise<User[]> {
+    const params = new URLSearchParams();
+    if (query) {
+      params.append('username', query);
+    }
+
+    const response = await fetch(`${API_BASE_URL}/api/users/search?${params}`, {
+      headers: getAuthHeaders(),
+    });
+
+    const users = await handleResponse(response);
+
+    return users.map((user: any) => ({
+      id: String(user.id),
+      username: user.username,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      isActive: user.isActive,
+      createdAt: user.createdAt,
+    }));
+  }
+
   async updateUserRole(userId: string, role: User['role']): Promise<User> {
     const response = await fetch(`${API_BASE_URL}/api/users/${userId}/role`, {
       method: 'PUT',
@@ -249,17 +273,172 @@ class ApiService {
     };
   }
 
+  async createUser(userData: {
+    firstName: string;
+    lastName: string;
+    username: string;
+    password: string;
+    role: string;
+  }): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/users`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify(userData),
+    });
+
+    await handleResponse(response);
+  }
+
   // Password reset requests (Admin operations)
   async getPasswordResetRequests(): Promise<PasswordResetRequest[]> {
-    return [];
+    const response = await fetch(`${API_BASE_URL}/api/auth/password-reset/requests`, {
+      headers: getAuthHeaders(),
+    });
+
+    const requests = await handleResponse(response);
+
+    return requests.map((req: any) => ({
+      id: String(req.id),
+      username: req.username,
+      userEmail: req.userEmail,
+      status: req.status,
+      requestedAt: req.requestedAt,
+      resolvedAt: req.resolvedAt,
+    }));
   }
 
   async approvePasswordResetRequest(requestId: string): Promise<void> {
-    console.log('Approving password reset request:', requestId);
+    const response = await fetch(`${API_BASE_URL}/api/auth/password-reset/approve/${requestId}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    const data = await handleResponse(response);
+
+    // Show the temporary password to the admin
+    if (data.temporaryPassword) {
+      alert(`Password reset approved!\n\nUsername: ${data.username}\nTemporary Password: ${data.temporaryPassword}\n\nPlease provide this to the user.`);
+    }
   }
 
   async rejectPasswordResetRequest(requestId: string): Promise<void> {
-    console.log('Rejecting password reset request:', requestId);
+    const response = await fetch(`${API_BASE_URL}/api/auth/password-reset/reject/${requestId}`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    await handleResponse(response);
+  }
+
+  // Account Request operations
+  async requestAccount(accountType: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/accounts/request`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ accountType }),
+    });
+
+    await handleResponse(response);
+  }
+
+  async getAccountRequests(): Promise<AccountRequest[]> {
+    const response = await fetch(`${API_BASE_URL}/api/accounts/requests`, {
+      headers: getAuthHeaders(),
+    });
+
+    const requests = await handleResponse(response);
+
+    return requests.map((req: any) => ({
+      id: String(req.id),
+      userId: String(req.userId),
+      username: req.username,
+      accountType: req.accountType,
+      status: req.status,
+      requestedAt: req.requestedAt,
+      resolvedAt: req.resolvedAt,
+    }));
+  }
+
+  async approveAccountRequest(requestId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/accounts/requests/${requestId}/approve`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    await handleResponse(response);
+  }
+
+  async rejectAccountRequest(requestId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/accounts/requests/${requestId}/reject`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    await handleResponse(response);
+  }
+
+  // Account Deletion Request operations
+  async requestAccountDeletion(accountId: string, reason: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/accounts/${accountId}/delete-request`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ reason }),
+    });
+
+    await handleResponse(response);
+  }
+
+  async getAccountDeletionRequests(): Promise<AccountDeletionRequest[]> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/requests/account-deletion`, {
+      headers: getAuthHeaders(),
+    });
+
+    const requests = await handleResponse(response);
+
+    return requests.map((req: any) => ({
+      id: String(req.id),
+      userId: String(req.userId),
+      username: req.username,
+      accountId: String(req.accountId),
+      accountNumber: req.accountNumber,
+      accountType: req.accountType,
+      status: req.status,
+      reason: req.reason,
+      requestedAt: req.requestedAt,
+      resolvedAt: req.resolvedAt,
+    }));
+  }
+
+  async approveAccountDeletion(requestId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/requests/account-deletion/${requestId}/approve`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    await handleResponse(response);
+  }
+
+  async rejectAccountDeletion(requestId: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/admin/requests/account-deletion/${requestId}/reject`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+    });
+
+    await handleResponse(response);
+  }
+
+  async changePassword(newPassword: string): Promise<void> {
+    const response = await fetch(`${API_BASE_URL}/api/auth/change-password`, {
+      method: 'POST',
+      headers: getAuthHeaders(),
+      body: JSON.stringify({ newPassword }),
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || 'Failed to change password');
+    }
+    return response.json();
   }
 
   private mapBackendTransactionType(backendType: string): Transaction['type'] {

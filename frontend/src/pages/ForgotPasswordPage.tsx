@@ -9,20 +9,20 @@ import { api } from '@/services/api';
 import { KeyRound, ArrowLeft } from 'lucide-react';
 
 export default function ForgotPasswordPage() {
-  const [email, setEmail] = useState('');
+  const [username, setUsername] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  const [errors, setErrors] = useState<{ email?: string }>({});
+  const [errors, setErrors] = useState<{ username?: string }>({});
 
   const { toast } = useToast();
 
   const validateForm = (): boolean => {
-    const newErrors: { email?: string } = {};
+    const newErrors: { username?: string } = {};
 
-    if (!email) {
-      newErrors.email = 'Email is required';
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
+    if (!username) {
+      newErrors.username = 'Username is required';
+    } else if (username.length < 3) {
+      newErrors.username = 'Username must be at least 3 characters';
     }
 
     setErrors(newErrors);
@@ -40,7 +40,7 @@ export default function ForgotPasswordPage() {
     setErrors({});
 
     try {
-      await api.requestPasswordReset(email);
+      await api.requestPasswordReset(username);
 
       setIsSubmitted(true);
 
@@ -78,8 +78,8 @@ export default function ForgotPasswordPage() {
             <div className="space-y-4">
               <div className="p-4 bg-muted rounded-md">
                 <p className="text-sm text-muted-foreground">
-                  An administrator will review your request and you will receive further instructions
-                  via email if your request is approved.
+                  An administrator will review your request. If approved, a temporary password will be generated.
+                  Contact your local branch to receive the temporary password.
                 </p>
               </div>
 
@@ -107,24 +107,25 @@ export default function ForgotPasswordPage() {
           </div>
           <CardTitle className="text-2xl font-bold">Forgot Password</CardTitle>
           <CardDescription>
-            Enter your email address and we'll send a reset request to an administrator
+            Enter your username to request a password reset from an administrator
           </CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
+              <Label htmlFor="username">Username</Label>
               <Input
-                id="email"
-                type="email"
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                id="username"
+                type="text"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading}
-                className={errors.email ? 'border-destructive' : ''}
+                className={errors.username ? 'border-destructive' : ''}
+                autoFocus
               />
-              {errors.email && (
-                <p className="text-sm text-destructive">{errors.email}</p>
+              {errors.username && (
+                <p className="text-sm text-destructive">{errors.username}</p>
               )}
             </div>
 

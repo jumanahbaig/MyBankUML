@@ -7,9 +7,11 @@ public class UserDTO {
     private String lastName;
     private String role;
     private boolean isActive;
+    private boolean forcePasswordChange;
     private String createdAt;
 
-    public UserDTO(long id, String username, String firstName, String lastName, String role, String createdAt) {
+    public UserDTO(long id, String username, String firstName, String lastName, String role, String createdAt,
+            boolean forcePasswordChange) {
         this.id = id;
         this.username = username;
         this.firstName = firstName;
@@ -17,6 +19,11 @@ public class UserDTO {
         this.role = role;
         this.isActive = true;
         this.createdAt = createdAt;
+        this.forcePasswordChange = forcePasswordChange;
+    }
+
+    public UserDTO(long id, String username, String firstName, String lastName, String role, String createdAt) {
+        this(id, username, firstName, lastName, role, createdAt, false);
     }
 
     public long getId() {
@@ -73,5 +80,13 @@ public class UserDTO {
 
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isForcePasswordChange() {
+        return forcePasswordChange;
+    }
+
+    public void setForcePasswordChange(boolean forcePasswordChange) {
+        this.forcePasswordChange = forcePasswordChange;
     }
 }

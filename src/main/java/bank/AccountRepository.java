@@ -10,7 +10,8 @@ import java.util.List;
 public class AccountRepository {
     private Account accountType;
     private List<Account> accountList;
-    // Shared DatabaseManager ensures every repository instance talks to the same SQLite file.
+    // Shared DatabaseManager ensures every repository instance talks to the same
+    // SQLite file.
     private final DatabaseManager databaseManager;
     private final Logs logs;
 
@@ -29,18 +30,19 @@ public class AccountRepository {
         this.accountType = account;
         // Each insert writes the account owner + account type into the accounts table.
         System.out.println("Adding account: " + account.getClass().getSimpleName());
-        // TODO: prevent race conditions when multiple accounts are created simultaneously (synchronize sequence generation).
+        // TODO: prevent race conditions when multiple accounts are created
+        // simultaneously (synchronize sequence generation).
         long customerId = findCustomerId(account.getCustomer());
         String sql = "INSERT INTO accounts (customer_id, account_type, account_number) "
-                + "VALUES (?, ?, ?) "
-                + "ON CONFLICT(customer_id, account_type) DO UPDATE SET "
-                + "account_number = excluded.account_number;";
+                + "VALUES (?, ?, ?)";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, customerId);
             statement.setString(2, account.getClass().getSimpleName().toUpperCase());
-            statement.setString(3, generateAccountNumber(connection));
+            String acctNum = generateAccountNumber(connection);
+            statement.setString(3, acctNum);
             statement.executeUpdate();
+            account.setAccountNumber(acctNum);
             accountList.add(account);
         } catch (SQLException e) {
             throw new RuntimeException("Unable to add account for " + account.getCustomer().getUserName(), e);
@@ -48,25 +50,26 @@ public class AccountRepository {
     }
 
     public void deleteAccount(Account account) {
-        // Removes both the row in the DB and the cached instance for the given customer/type combo.
+        // Removes both the row in the DB and the cached instance for the given
+        // customer/type combo.
         System.out.println("Deleting account: " + account.getClass().getSimpleName());
         long customerId = findCustomerId(account.getCustomer());
         String sql = "DELETE FROM accounts "
-                + "WHERE customer_id = ? AND account_type = ?;";
+                + "WHERE customer_id = ? AND account_number = ?;";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, customerId);
-            statement.setString(2, account.getClass().getSimpleName().toUpperCase());
+            statement.setString(2, account.getAccountNumber());
             statement.executeUpdate();
-            accountList.removeIf(existing -> existing.getClass().equals(account.getClass())
-                    && existing.getCustomer().getUserName().equals(account.getCustomer().getUserName()));
+            accountList.removeIf(existing -> existing.getAccountNumber().equals(account.getAccountNumber()));
         } catch (SQLException e) {
             throw new RuntimeException("Unable to delete account for " + account.getCustomer().getUserName(), e);
         }
     }
 
     /**
-     * Deletes an account by account number (if it exists) and logs the deletion when possible.
+     * Deletes an account by account number (if it exists) and logs the deletion
+     * when possible.
      * Only ADMIN role may delete accounts.
      */
     public void deleteAccount(String accountNumber, String userRole) {
@@ -76,17 +79,16 @@ public class AccountRepository {
 
         String sql = "DELETE FROM accounts WHERE account_number = ?";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, accountNumber);
             int rows = statement.executeUpdate();
             if (rows > 0) {
                 if (logs != null) {
                     logs.append(
-                        "SYSTEM",
-                        "DELETE_ACCOUNT",
-                        accountNumber,
-                        "Account " + accountNumber + " deleted by admin."
-                    );
+                            "SYSTEM",
+                            "DELETE_ACCOUNT",
+                            accountNumber,
+                            "Account " + accountNumber + " deleted by admin.");
                 }
             } else {
                 System.out.println("Account with number " + accountNumber + " does not exist.");
@@ -103,7 +105,7 @@ public class AccountRepository {
                 + "FROM accounts "
                 + "WHERE customer_id = ?;";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, customerId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -130,21 +132,23 @@ public class AccountRepository {
     // Currently unused; intended for future cache warmups.
     public void load() {
         System.out.println("Loading accounts from the database.");
-        // Refresh the in-memory list from scratch so it reflects the current database snapshot.
+        // Refresh the in-memory list from scratch so it reflects the current database
+        // snapshot.
         accountList = new ArrayList<>();
-        String sql = "SELECT a.account_type, u.first_name, u.last_name, u.username, u.password "
+        String sql = "SELECT a.account_type, a.account_number, u.first_name, u.last_name, u.username, u.password "
                 + "FROM accounts a "
                 + "JOIN users u ON u.id = a.customer_id;";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
+                PreparedStatement statement = connection.prepareStatement(sql);
+                ResultSet resultSet = statement.executeQuery()) {
             while (resultSet.next()) {
                 Customer owner = new Customer(
                         resultSet.getString("first_name"),
                         resultSet.getString("last_name"),
                         resultSet.getString("username"),
                         resultSet.getString("password"));
-                accountList.add(createAccountInstance(resultSet.getString("account_type"), owner));
+                accountList.add(createAccountInstance(resultSet.getString("account_type"), owner,
+                        resultSet.getString("account_number")));
             }
             if (!accountList.isEmpty()) {
                 accountType = accountList.get(accountList.size() - 1);
@@ -180,7 +184,7 @@ public class AccountRepository {
                 "WHERE a.id = ?";
 
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, accountId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -188,9 +192,9 @@ public class AccountRepository {
                             resultSet.getString("first_name"),
                             resultSet.getString("last_name"),
                             resultSet.getString("username"),
-                            resultSet.getString("password")
-                    );
-                    return createAccountInstance(resultSet.getString("account_type"), owner);
+                            resultSet.getString("password"));
+                    return createAccountInstance(resultSet.getString("account_type"), owner,
+                            resultSet.getString("account_number"));
                 }
             }
         } catch (SQLException e) {
@@ -209,7 +213,7 @@ public class AccountRepository {
                 "WHERE a.account_number = ?";
 
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, accountNumber);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -217,9 +221,9 @@ public class AccountRepository {
                             resultSet.getString("first_name"),
                             resultSet.getString("last_name"),
                             resultSet.getString("username"),
-                            resultSet.getString("password")
-                    );
-                    return createAccountInstance(resultSet.getString("account_type"), owner);
+                            resultSet.getString("password"));
+                    return createAccountInstance(resultSet.getString("account_type"), owner,
+                            resultSet.getString("account_number"));
                 }
             }
         } catch (SQLException e) {
@@ -229,7 +233,8 @@ public class AccountRepository {
     }
 
     /**
-     * Searches accounts by optional account number, account type, and customer username.
+     * Searches accounts by optional account number, account type, and customer
+     * username.
      * If all filters are null/blank, returns all accounts.
      */
     public List<Account> search(String accountNumber, String accountType, String username) {
@@ -239,8 +244,7 @@ public class AccountRepository {
                 "SELECT a.account_type, a.account_number, u.first_name, u.last_name, u.username, u.password " +
                         "FROM accounts a " +
                         "JOIN users u ON u.id = a.customer_id " +
-                        "WHERE 1=1"
-        );
+                        "WHERE 1=1");
 
         boolean hasNumber = accountNumber != null && !accountNumber.isBlank();
         boolean hasType = accountType != null && !accountType.isBlank();
@@ -257,7 +261,7 @@ public class AccountRepository {
         }
 
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+                PreparedStatement statement = connection.prepareStatement(sql.toString())) {
 
             int paramIndex = 1;
             if (hasNumber) {
@@ -276,9 +280,9 @@ public class AccountRepository {
                             resultSet.getString("first_name"),
                             resultSet.getString("last_name"),
                             resultSet.getString("username"),
-                            resultSet.getString("password")
-                    );
-                    results.add(createAccountInstance(resultSet.getString("account_type"), owner));
+                            resultSet.getString("password"));
+                    results.add(createAccountInstance(resultSet.getString("account_type"), owner,
+                            resultSet.getString("account_number")));
                 }
             }
         } catch (SQLException e) {
@@ -290,16 +294,18 @@ public class AccountRepository {
 
     /**
      * Displays all accounts for the given username (SRS requirement).
-     * Prints one line per account; prints a "no accounts" message if none are found.
+     * Prints one line per account; prints a "no accounts" message if none are
+     * found.
      */
     public void displayAccountsForCustomer(String username) {
-        String sql = "SELECT a.account_type, a.account_number, a.balance, u.first_name, u.last_name, u.username, u.password " +
-                     "FROM accounts a " +
-                     "JOIN users u ON u.id = a.customer_id " +
-                     "WHERE u.username = ?";
+        String sql = "SELECT a.account_type, a.account_number, a.balance, u.first_name, u.last_name, u.username, u.password "
+                +
+                "FROM accounts a " +
+                "JOIN users u ON u.id = a.customer_id " +
+                "WHERE u.username = ?";
 
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
 
             statement.setString(1, username);
 
@@ -312,10 +318,9 @@ public class AccountRepository {
                     double balance = resultSet.getDouble("balance");
 
                     System.out.println(
-                        "Account " + accountNumber +
-                        " | Type: " + account.getClass().getSimpleName() +
-                        " | Balance: " + balance
-                    );
+                            "Account " + accountNumber +
+                                    " | Type: " + account.getClass().getSimpleName() +
+                                    " | Balance: " + balance);
                 }
             }
 
@@ -329,15 +334,19 @@ public class AccountRepository {
     }
 
     /**
-     * Generates the next globally unique account number in the format ACCT-XXXXXXXXXX.
-     * Relies on the database to track the highest value, avoiding duplicates even across restarts.
+     * Generates the next globally unique account number in the format
+     * ACCT-XXXXXXXXXX.
+     * Relies on the database to track the highest value, avoiding duplicates even
+     * across restarts.
      */
     private String generateAccountNumber(Connection connection) throws SQLException {
-        // Fetch the most recent numeric identifier and increment it for a global sequence.
-        // TODO: handle concurrent increments safely (e.g., using database sequences or locks).
+        // Fetch the most recent numeric identifier and increment it for a global
+        // sequence.
+        // TODO: handle concurrent increments safely (e.g., using database sequences or
+        // locks).
         String sql = "SELECT MAX(account_number) AS last_number FROM accounts";
         try (PreparedStatement statement = connection.prepareStatement(sql);
-             ResultSet resultSet = statement.executeQuery()) {
+                ResultSet resultSet = statement.executeQuery()) {
             long nextValue = 1;
             if (resultSet.next()) {
                 String lastValue = resultSet.getString("last_number");
@@ -349,11 +358,34 @@ public class AccountRepository {
         }
     }
 
+    public String generateNewAccountNumber() {
+        try (Connection connection = databaseManager.getConnection()) {
+            return generateAccountNumber(connection);
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to generate account number", e);
+        }
+    }
+
+    public void createAccount(long userId, String accountType, String accountNumber, double balance) {
+        String sql = "INSERT INTO accounts (customer_id, account_type, account_number, balance) VALUES (?, ?, ?, ?)";
+        try (Connection connection = databaseManager.getConnection();
+                PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setLong(1, userId);
+            statement.setString(2, accountType.toUpperCase());
+            statement.setString(3, accountNumber);
+            statement.setDouble(4, balance);
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Unable to create account", e);
+        }
+    }
+
     private long findCustomerId(Customer customer) {
-        // Look up the numeric database identifier for this username so we can store it as the account owner.
+        // Look up the numeric database identifier for this username so we can store it
+        // as the account owner.
         String sql = "SELECT id FROM users WHERE username = ?";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, customer.getUserName());
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {
@@ -366,18 +398,26 @@ public class AccountRepository {
         throw new IllegalStateException("Customer " + customer.getUserName() + " does not exist in the database.");
     }
 
-    private Account createAccountInstance(String accountType, Customer owner) {
+    private Account createAccountInstance(String accountType, Customer owner, String accountNumber) {
         String normalized = accountType.toUpperCase();
+        Account account;
         switch (normalized) {
             case "CARD":
-                return new Card(owner);
+                account = new Card(owner);
+                break;
             case "SAVING":
-                return new Saving(owner);
+                account = new Saving(owner);
+                break;
             case "CHECK":
-                return owner.getCheckingAccount();
+                account = owner.getCheckingAccount();
+                break;
             default:
                 throw new IllegalArgumentException("Unknown account type: " + accountType);
         }
+        if (account != null) {
+            account.setAccountNumber(accountNumber);
+        }
+        return account;
     }
 
     private Account mapRowToAccount(ResultSet resultSet) throws SQLException {
@@ -385,8 +425,7 @@ public class AccountRepository {
                 resultSet.getString("first_name"),
                 resultSet.getString("last_name"),
                 resultSet.getString("username"),
-                resultSet.getString("password")
-        );
-        return createAccountInstance(resultSet.getString("account_type"), owner);
+                resultSet.getString("password"));
+        return createAccountInstance(resultSet.getString("account_type"), owner, resultSet.getString("account_number"));
     }
 }

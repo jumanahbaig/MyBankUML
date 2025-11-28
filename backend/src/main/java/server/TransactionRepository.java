@@ -9,6 +9,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.time.LocalDateTime;
 
 public class TransactionRepository {
     private final DatabaseManager databaseManager;
@@ -22,7 +23,7 @@ public class TransactionRepository {
         String sql = "INSERT INTO transactions (account_id, amount, type, description, created_at) " +
                 "VALUES (?, ?, ?, ?, ?)";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, accountId);
             statement.setDouble(2, transaction.getAmount());
             statement.setString(3, transaction.getType());
@@ -41,7 +42,7 @@ public class TransactionRepository {
                 "WHERE account_id = ? " +
                 "ORDER BY created_at DESC";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setLong(1, accountId);
             try (ResultSet resultSet = statement.executeQuery()) {
                 while (resultSet.next()) {
@@ -49,8 +50,7 @@ public class TransactionRepository {
                             String.valueOf(resultSet.getLong("id")),
                             resultSet.getDouble("amount"),
                             resultSet.getString("type"),
-                            resultSet.getString("description")
-                    );
+                            resultSet.getString("description"));
                     transactions.add(transaction);
                 }
             }
@@ -65,8 +65,7 @@ public class TransactionRepository {
         StringBuilder sql = new StringBuilder(
                 "SELECT id, amount, type, description, created_at " +
                         "FROM transactions " +
-                        "WHERE account_id = ?"
-        );
+                        "WHERE account_id = ?");
 
         boolean hasType = type != null && !type.isBlank();
         boolean hasAmount = amount != null;
@@ -81,7 +80,7 @@ public class TransactionRepository {
         sql.append(" ORDER BY created_at DESC");
 
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql.toString())) {
+                PreparedStatement statement = connection.prepareStatement(sql.toString())) {
 
             statement.setLong(1, accountId);
             int paramIndex = 2;
@@ -99,8 +98,7 @@ public class TransactionRepository {
                             String.valueOf(resultSet.getLong("id")),
                             resultSet.getDouble("amount"),
                             resultSet.getString("type"),
-                            resultSet.getString("description")
-                    );
+                            resultSet.getString("description"));
                     results.add(transaction);
                 }
             }
@@ -114,7 +112,7 @@ public class TransactionRepository {
     public long findAccountId(String accountNumber) {
         String sql = "SELECT id FROM accounts WHERE account_number = ?";
         try (Connection connection = databaseManager.getConnection();
-             PreparedStatement statement = connection.prepareStatement(sql)) {
+                PreparedStatement statement = connection.prepareStatement(sql)) {
             statement.setString(1, accountNumber);
             try (ResultSet resultSet = statement.executeQuery()) {
                 if (resultSet.next()) {

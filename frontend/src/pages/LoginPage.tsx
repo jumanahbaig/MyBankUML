@@ -1,4 +1,4 @@
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { Button } from '@/components/ui/button';
@@ -14,17 +14,18 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
   const [errors, setErrors] = useState<{ username?: string; password?: string }>({});
 
-  const { login, isAuthenticated } = useAuth();
+  const { login, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // Redirect if already authenticated
-  if (isAuthenticated) {
-    const user = JSON.parse(localStorage.getItem('user') || '{}');
-    if (user.role === 'customer') navigate('/customer');
-    else if (user.role === 'teller') navigate('/teller');
-    else if (user.role === 'admin') navigate('/admin');
-  }
+  useEffect(() => {
+    if (isAuthenticated && user) {
+      if (user.role === 'customer') navigate('/customer');
+      else if (user.role === 'teller') navigate('/teller');
+      else if (user.role === 'admin') navigate('/admin');
+    }
+  }, [isAuthenticated, user, navigate]);
 
   const validateForm = (): boolean => {
     const newErrors: { username?: string; password?: string } = {};

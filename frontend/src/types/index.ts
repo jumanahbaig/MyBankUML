@@ -2,7 +2,7 @@ export type UserRole = 'customer' | 'teller' | 'admin';
 
 export type AccountStatus = 'active' | 'inactive' | 'suspended' | 'closed';
 
-export type AccountType = 'checking' | 'savings' | 'money_market' | 'cd';
+export type AccountType = 'checking' | 'savings' | 'credit';
 
 export type TransactionType = 'deposit' | 'withdrawal' | 'transfer' | 'payment' | 'fee';
 
@@ -16,6 +16,7 @@ export interface User {
   role: UserRole;
   isActive: boolean;
   createdAt: string;
+  forcePasswordChange?: boolean;
 }
 
 export interface Account {
@@ -47,6 +48,29 @@ export interface PasswordResetRequest {
   userEmail: string;
   requestedAt: string;
   status: 'pending' | 'approved' | 'rejected';
+}
+
+export interface AccountRequest {
+  id: string;
+  userId: string;
+  username: string;
+  accountType: string;
+  status: 'pending' | 'approved' | 'rejected';
+  requestedAt: string;
+  resolvedAt?: string;
+}
+
+export interface AccountDeletionRequest {
+  id: string;
+  userId: string;
+  username: string;
+  accountId: string;
+  accountNumber: string;
+  accountType: string;
+  status: 'pending' | 'approved' | 'rejected';
+  reason: string;
+  requestedAt: string;
+  resolvedAt?: string;
 }
 
 export interface AuthContextType {
