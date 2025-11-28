@@ -580,6 +580,10 @@ public class ApiServer {
                     transaction.getTimestamp().toString());
 
             ctx.status(HttpStatus.CREATED).json(dto);
+        } catch (IllegalStateException e) {
+            // Handle insufficient funds or other state errors
+            ctx.status(HttpStatus.BAD_REQUEST)
+                    .json(new ErrorResponse("INSUFFICIENT_FUNDS", e.getMessage()));
         } catch (Exception e) {
             ctx.status(HttpStatus.BAD_REQUEST)
                     .json(new ErrorResponse("ERROR", e.getMessage()));
@@ -951,6 +955,27 @@ public class ApiServer {
     }
 
     private static void updateAccountBalance(long accountId, double amount, String type) {
+        // Check for insufficient funds before debit transactions
+        if (type.equals("debit")) {
+            String checkBalanceSql = "SELECT balance FROM accounts WHERE id = ?";
+            try (Connection connection = dbManager.getConnection();
+                    PreparedStatement checkStatement = connection.prepareStatement(checkBalanceSql)) {
+                checkStatement.setLong(1, accountId);
+                try (ResultSet rs = checkStatement.executeQuery()) {
+                    if (rs.next()) {
+                        double currentBalance = rs.getDouble("balance");
+                        if (currentBalance < amount) {
+                            throw new IllegalStateException("Insufficient funds. Current balance: $" +
+                                    String.format("%.2f", currentBalance) + ", Required: $" +
+                                    String.format("%.2f", amount));
+                        }
+                    }
+                }
+            } catch (SQLException e) {
+                throw new RuntimeException("Unable to check balance", e);
+            }
+        }
+
         String sql = "UPDATE accounts SET balance = balance + ? WHERE id = ?";
         try (Connection connection = dbManager.getConnection();
                 PreparedStatement statement = connection.prepareStatement(sql)) {

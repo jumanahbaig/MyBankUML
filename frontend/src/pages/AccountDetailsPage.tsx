@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { api } from '@/services/api';
 import { Account } from '@/types';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -13,7 +13,11 @@ export default function AccountDetailsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const { accountId } = useParams();
   const navigate = useNavigate();
+  const location = useLocation();
   const { toast } = useToast();
+
+  const isTeller = location.pathname.includes('/teller/');
+  const dashboardLink = isTeller ? '/teller' : '/customer';
 
   useEffect(() => {
     const fetchAccount = async () => {
@@ -54,7 +58,7 @@ export default function AccountDetailsPage() {
           <div className="text-center py-12">
             <AlertCircle className="h-12 w-12 text-gray-400 mx-auto mb-4" />
             <p className="text-gray-600">Account not found</p>
-            <Button variant="outline" className="mt-4" onClick={() => navigate('/customer')}>
+            <Button variant="outline" className="mt-4" onClick={() => navigate(dashboardLink)}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Dashboard
             </Button>
@@ -69,7 +73,7 @@ export default function AccountDetailsPage() {
   return (
     <div className="space-y-6">
       {/* Back Button */}
-      <Button variant="ghost" onClick={() => navigate('/customer')}>
+      <Button variant="ghost" onClick={() => navigate(dashboardLink)}>
         <ArrowLeft className="mr-2 h-4 w-4" />
         Back to Dashboard
       </Button>
@@ -119,69 +123,81 @@ export default function AccountDetailsPage() {
         </CardContent>
       </Card>
 
-      {/* Actions */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Account Actions</CardTitle>
-          <CardDescription>Manage your account and view transactions</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <Button
-              variant="outline"
-              className="h-auto py-4 flex-col items-start"
-              onClick={() => navigate(`/customer/accounts/${account.id}/transactions`)}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <Receipt className="h-5 w-5 text-primary" />
-                <span className="font-semibold">View Transactions</span>
-              </div>
-              <span className="text-xs text-gray-500">
-                View all transactions for this account
-              </span>
-            </Button>
+      {/* Actions - Only show for customers */}
+      {!isTeller && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Account Actions</CardTitle>
+            <CardDescription>Manage your account and view transactions</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col items-start"
+                onClick={() => navigate(`/customer/accounts/${account.id}/transactions`)}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <Receipt className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">View Transactions</span>
+                </div>
+                <span className="text-xs text-gray-500">
+                  View all transactions for this account
+                </span>
+              </Button>
 
-            <Button
-              variant="outline"
-              className="h-auto py-4 flex-col items-start"
-              onClick={() => navigate(`/customer/accounts/${account.id}/transactions?action=add`)}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="h-5 w-5 text-primary" />
-                <span className="font-semibold">Add Transaction</span>
-              </div>
-              <span className="text-xs text-gray-500">
-                Deposit or withdraw funds
-              </span>
-            </Button>
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col items-start"
+                onClick={() => navigate(`/customer/accounts/${account.id}/transactions?action=add`)}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">Add Transaction</span>
+                </div>
+                <span className="text-xs text-gray-500">
+                  Deposit or withdraw funds
+                </span>
+              </Button>
 
-            <Button
-              variant="outline"
-              className="h-auto py-4 flex-col items-start"
-              disabled={hasInsufficientFunds}
-              onClick={() => {
-                if (hasInsufficientFunds) {
-                  toast({
-                    variant: 'destructive',
-                    title: 'Insufficient Funds',
-                    description: 'You need at least $100 to make a payment.',
-                  });
-                } else {
-                  navigate(`/customer/accounts/${account.id}/transactions?action=payment`);
-                }
-              }}
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <DollarSign className="h-5 w-5 text-primary" />
-                <span className="font-semibold">Make Payment</span>
-              </div>
-              <span className="text-xs text-gray-500">
-                {hasInsufficientFunds ? 'Insufficient funds' : 'Pay bills or transfer money'}
-              </span>
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+              <Button
+                variant="outline"
+                className="h-auto py-4 flex-col items-start"
+                disabled={hasInsufficientFunds}
+                onClick={() => {
+                  if (hasInsufficientFunds) {
+                    toast({
+                      variant: 'destructive',
+                      title: 'Insufficient Funds',
+                      description: 'You need at least $100 to make a payment.',
+                    });
+                  } else {
+                    navigate(`/customer/accounts/${account.id}/transactions?action=payment`);
+                  }
+                }}
+              >
+                <div className="flex items-center gap-2 mb-2">
+                  <DollarSign className="h-5 w-5 text-primary" />
+                  <span className="font-semibold">Make Payment</span>
+                </div>
+                <span className="text-xs text-gray-500">
+                  {hasInsufficientFunds ? 'Insufficient funds' : 'Pay bills or transfer money'}
+                </span>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Teller Read-Only Note */}
+      {isTeller && (
+        <div className="p-4 bg-muted rounded-md">
+          <p className="text-sm text-gray-600">
+            <strong>Note:</strong> As a teller, you can only view account information. You
+            cannot modify or perform transactions on customer accounts.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
