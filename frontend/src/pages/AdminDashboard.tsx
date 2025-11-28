@@ -450,9 +450,10 @@ export default function AdminDashboard() {
                           onChange={(e) =>
                             handleUpdateUserRole(user.id, e.target.value as UserRole)
                           }
-                          className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-sm"
+                          disabled={user.role === 'customer'}
+                          className="flex h-8 rounded-md border border-input bg-transparent px-2 py-1 text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                          <option value="customer">Customer</option>
+                          <option value="customer" disabled>Customer</option>
                           <option value="teller">Teller</option>
                           <option value="admin">Admin</option>
                         </select>

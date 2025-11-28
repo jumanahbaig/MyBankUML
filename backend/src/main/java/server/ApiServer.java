@@ -597,11 +597,29 @@ public class ApiServer {
         try {
             long userId = Long.parseLong(ctx.pathParam("userId"));
             UpdateRoleRequest request = ctx.bodyAsClass(UpdateRoleRequest.class);
+            String newRole = request.getRole();
 
-            userRepository.updateRole(userId, request.getRole());
+            // Get current user info
+            String username = getUsernameById(userId);
+            String currentRole = getRoleForUser(username);
+
+            // Restriction 1: Cannot change role OF a customer
+            if ("customer".equalsIgnoreCase(currentRole)) {
+                ctx.status(HttpStatus.FORBIDDEN)
+                        .json(new ErrorResponse("FORBIDDEN", "Cannot change role of a customer account"));
+                return;
+            }
+
+            // Restriction 2: Cannot change role TO a customer
+            if ("customer".equalsIgnoreCase(newRole)) {
+                ctx.status(HttpStatus.FORBIDDEN)
+                        .json(new ErrorResponse("FORBIDDEN", "Cannot change an existing user to a customer role"));
+                return;
+            }
+
+            userRepository.updateRole(userId, newRole);
 
             // Return the updated user
-            String username = getUsernameById(userId);
             User user = getUserByUsername(username);
             String timestamp = getCurrentTimestamp(userId);
 
